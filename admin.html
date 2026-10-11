@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Revision Hub - Admin</title>
+<style>
+  :root {
+    --bg: #f6f7fb; --card: #ffffff; --text: #1c2434; --muted: #667085;
+    --line: #e4e7ec; --accent: #4f46e5; --accent-soft: #eef2ff; --danger: #b42318; --ok: #067647;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420; --card: #18202f; --text: #e8ecf4; --muted: #9aa4b5;
+      --line: #2a3447; --accent: #818cf8; --accent-soft: #232b45; --danger: #f97066; --ok: #47cd89;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 20px; }
+  header .inner { max-width: 960px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .logo { font-weight: 800; font-size: 20px; color: var(--accent); text-decoration: none; }
+  .hlinks { display: flex; gap: 10px; align-items: center; }
+  .hlinks a { color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 600; }
+  main { max-width: 960px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 24px; margin: 0 0 14px; }
+  h2 { font-size: 17px; margin: 0 0 6px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .narrow { max-width: 420px; margin: 40px auto; }
+  .field { display: block; margin-bottom: 14px; }
+  .lbl { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .hint { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+  input[type=text], input[type=email], input[type=password], input[type=number], textarea, select {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); font-size: 15px; font-family: inherit;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 14px; }
+  .box { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .opt-row { border-top: 1px solid var(--line); padding: 12px 0; }
+  .opt-row:first-of-type { border-top: 0; }
+  .opt-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .opt-head label { font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .btn { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+    color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: .6; cursor: not-allowed; }
+  .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .danger { color: var(--danger); }
+  .tiny { padding: 5px 10px; font-size: 13px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+  .toolbar select { width: auto; max-width: 100%; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .badge { background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .badge.draft { background: #fef0c7; color: #93370d; }
+  .rtext { white-space: pre-wrap; word-break: break-word; }
+  .empty { background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); }
+  .error { background: var(--card); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px; margin: 12px 0; }
+  .imgctl { margin-top: 4px; }
+  .prev { display: block; max-width: 240px; max-height: 200px; border-radius: 8px; border: 1px solid var(--line); margin: 8px 0; }
+  .imgctl input[type=file] { font-size: 13px; max-width: 100%; }
+  #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ok); color: #fff;
+    padding: 10px 18px; border-radius: 10px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 90%; z-index: 10; }
+  #toast.show { opacity: 1; }
+  #toast.bad { background: var(--danger); }
+  @media (max-width: 520px) { main { padding: 14px; } .panel { padding: 14px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <span class="logo">Revision Hub - Admin</span>
+    <div class="hlinks">
+      <a href="index.html">View site</a>
+      <button class="btn tiny" id="signout" style="display:none" type="button">Sign out</button>
+    </div>
+  </div>
+</header>
+<main><div id="app"></div></main>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://ovescrsrikwonurarbbl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_TxKpFdVrHZJ0yMwYTl9RHQ_xgb4wo_o";
+const BUCKET = "question-images";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const app = document.getElementById("app");
+const signOutBtn = document.getElementById("signout");
+
+/* ---------- helpers ---------- */
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "class") e.className = v; else e.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+const friendly = e => (e && e.message) ? e.message : "Unknown error";
+let toastTimer;
+function toast(msg, bad) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = "show" + (bad ? " bad" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ""; }, 4500);
+}
+function field(label, control, hint) {
+  return h("label", { class: "field" }, h("span", { class: "lbl" }, label), control,
+    hint ? h("span", { class: "hint" }, hint) : null);
+}
+function select(opts, value) {
+  const s = h("select", {}, opts.map(([v, l]) => h("option", { value: v }, l)));
+  s.value = value;
+  return s;
+}
+function setOptions(sel, opts, keep) {
+  const prev = keep !== undefined ? keep : sel.value;
+  sel.replaceChildren(...opts.map(([v, l]) => h("option", { value: v }, l)));
+  sel.value = opts.some(([v]) => v === prev) ? prev : opts[0][0];
+}
+const safeImage = u => typeof u === "string" && u.startsWith(SUPABASE_URL + "/storage/");
+const imageUrlsOf = q => [q.question_image_url, ...(Array.isArray(q.options) ? q.options.map(o => o.image_url) : [])].filter(Boolean);
+function pathFromUrl(u) {
+  const parts = String(u).split("/" + BUCKET + "/");
+  return parts.length === 2 ? decodeURIComponent(parts[1]) : null;
+}
+async function removeFiles(urls) {
+  const paths = [...new Set(urls)].map(pathFromUrl).filter(Boolean);
+  if (!paths.length) return;
+  const { error } = await db.storage.from(BUCKET).remove(paths);
+  if (error) console.error("Could not delete old image file(s):", error);
+}
+async function uploadImage(file) {
+  const ext = file.type === "image/png" ? "png" : "jpg";
+  const path = crypto.randomUUID() + "." + ext;
+  const { error } = await db.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+async function fetchAll(table, columns, col = "id", asc = true) {
+  let all = [], from = 0;
+  while (true) {
+    const { data, error } = await db.from(table).select(columns).order(col, { ascending: asc }).range(from, from + 999);
+    if (error) throw error;
+    all = all.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+  return all;
+}
+
+/* ---------- state ---------- */
+let meta = { subjects: [], topics: [], subtopics: [] };
+let questions = [];
+const filters = { subject: "", topic: "", paper: "", format: "", status: "", placement: "" };
+const nameOf = (list, id) => { const x = list.find(i => i.id === id); return x ? x.name : "?"; };
+
+/* ---------- sign in / out ---------- */
+function showLogin() {
+  signOutBtn.style.display = "none";
+  const email = h("input", { type: "email", autocomplete: "username", required: "required" });
+  const pass = h("input", { type: "password", autocomplete: "current-password", required: "required" });
+  const err = h("div", { class: "error", style: "display:none" });
+  const btn = h("button", { class: "btn primary", type: "submit" }, "Sign in");
+  const form = h("form", { class: "panel narrow" }, h("h1", {}, "Admin sign in"),
+    field("Email", email), field("Password", pass), err, btn);
+  form.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    btn.disabled = true; btn.textContent = "Signing in...";
+    const { error } = await db.auth.signInWithPassword({ email: email.value.trim(), password: pass.value });
+    if (error) {
+      err.style.display = ""; err.textContent = "Couldn't sign in. Check your email and password.";
+      btn.disabled = false; btn.textContent = "Sign in";
+      return;
+    }
+    await startApp();
+  });
+  app.replaceChildren(form);
+}
+signOutBtn.addEventListener("click", async () => {
+  await db.auth.signOut();
+  questions = [];
+  showLogin();
+});
+
+async function startApp() {
+  signOutBtn.style.display = "";
+  app.replaceChildren(h("p", { class: "muted" }, "Loading..."));
+  try {
+    const [subjects, topics, subtopics] = await Promise.all([
+      fetchAll("subjects", "id,name,papers"),
+      fetchAll("topics", "id,subject_id,name,sort_order"),
+      fetchAll("subtopics", "id,topic_id,name,sort_order")
+    ]);
+    const byOrder = (a, b) => (a.sort_order - b.sort_order) || (a.id - b.id);
+    topics.sort(byOrder); subtopics.sort(byOrder);
+    meta = { subjects, topics, subtopics };
+    questions = await fetchAll("questions", "*", "id", false);
+    showList();
+  } catch (e) {
+    console.error(e);
+    app.replaceChildren(h("div", { class: "error" }, "Couldn't load data: " + friendly(e)));
+  }
+}
+
+/* ---------- question list ---------- */
+function showList() {
+  window.scrollTo(0, 0);
+  const f = filters;
+  const subjSel = select([["", "All subjects"], ...meta.subjects.map(s => [String(s.id), s.name])], f.subject);
+  const topicList = meta.topics.filter(t => String(t.subject_id) === f.subject);
+  const topicSel = select([["", f.subject ? "All topics" : "Pick a subject first"], ...topicList.map(t => [String(t.id), t.name])], f.topic);
+  topicSel.disabled = !f.subject;
+  const papers = [...new Set(meta.subjects.flatMap(s => s.papers))];
+  const paperSel = select([["", "All papers"], ...papers.map(p => [p, "Paper " + p])], f.paper);
+  const fmtSel = select([["", "All formats"], ["mcq", "Multiple choice"], ["open", "Open ended"]], f.format);
+  const statusSel = select([["", "Draft + published"], ["published", "Published only"], ["draft", "Drafts only"]], f.status);
+  const placeSel = select([["", "All placements"], ["unassigned", "Unassigned only (no subtopic)"]], f.placement);
+  [["subject", subjSel], ["topic", topicSel], ["paper", paperSel], ["format", fmtSel], ["status", statusSel], ["placement", placeSel]]
+    .forEach(([key, el]) => el.addEventListener("change", () => {
+      f[key] = el.value;
+      if (key === "subject") f.topic = "";
+      showList();
+    }));
+
+  const shown = questions.filter(q =>
+    (!f.subject || String(q.subject_id) === f.subject) &&
+    (!f.topic || String(q.topic_id) === f.topic) &&
+    (!f.paper || q.paper === f.paper) &&
+    (!f.format || q.format === f.format) &&
+    (!f.status || q.status === f.status) &&
+    (f.placement !== "unassigned" || !q.subtopic_id));
+
+  const newBtn = h("button", { class: "btn primary", type: "button" }, "+ New question");
+  newBtn.addEventListener("click", () => showEditor(null));
+
+  app.replaceChildren(
+    h("div", { class: "toolbar" }, newBtn, h("span", { class: "muted" }, plural(shown.length, "question") + " shown (of " + questions.length + ")")),
+    h("div", { class: "toolbar" }, subjSel, topicSel, paperSel, fmtSel, statusSel, placeSel),
+    ...(shown.length ? shown.map(rowFor)
+      : [h("div", { class: "empty" }, questions.length ? "No questions match these filters." : "No questions yet. Click \"+ New question\" to add your first one.")])
+  );
+}
+
+function rowFor(q) {
+  let place = nameOf(meta.subjects, q.subject_id);
+  if (q.topic_id) place += " › " + nameOf(meta.topics, q.topic_id);
+  if (q.subtopic_id) place += " › " + nameOf(meta.subtopics, q.subtopic_id);
+  if (!q.subtopic_id) place += q.topic_id ? "  (no subtopic)" : "  (UNASSIGNED)";
+  const text = (q.question_text || "").trim() || "(image-only question)";
+  const short = text.length > 160 ? text.slice(0, 160) + "…" : text;
+
+  const edit = h("button", { class: "btn tiny", type: "button" }, "Edit");
+  edit.addEventListener("click", () => showEditor(q));
+  const del = h("button", { class: "btn tiny danger", type: "button" }, "Delete");
+  del.addEventListener("click", () => deleteQuestion(q, del));
+  const actions = h("div", { class: "actions" }, edit, del);
+  if (q.subtopic_id) actions.append(h("a", { class: "btn tiny", href: "index.html#/st/" + q.subtopic_id, target: "_blank", rel: "noopener" }, "View on site"));
+  else if (q.topic_id) actions.append(h("a", { class: "btn tiny", href: "index.html#/tq/" + q.topic_id, target: "_blank", rel: "noopener" }, "View on site"));
+
+  return h("div", { class: "row" },
+    h("div", { class: "badges" },
+      h("span", { class: "badge" }, "Paper " + q.paper),
+      h("span", { class: "badge" }, q.format === "mcq" ? "Multiple choice" : "Open ended"),
+      q.marks !== null && q.marks !== undefined ? h("span", { class: "badge" }, plural(q.marks, "mark")) : null,
+      q.status === "draft" ? h("span", { class: "badge draft" }, "Draft") : null),
+    h("div", { class: "rtext" }, short),
+    h("div", { class: "muted small" }, place),
+    actions);
+}
+
+async function deleteQuestion(q, btn) {
+  if (!confirm("Delete this question permanently?\n\n\"" + ((q.question_text || "(image-only)").slice(0, 80)) + "\"\n\nThis can't be undone.")) return;
+  btn.disabled = true; btn.textContent = "Deleting...";
+  try {
+    const { data, error } = await db.from("questions").delete().eq("id", q.id).select();
+    if (error) throw error;
+    if (!data || data.length !== 1) throw new Error("The question was not deleted (no permission, or it no longer exists).");
+    await removeFiles(imageUrlsOf(q));
+    questions = await fetchAll("questions", "*", "id", false);
+    showList();
+    toast("Question deleted.");
+  } catch (e) {
+    console.error(e);
+    btn.disabled = false; btn.textContent = "Delete";
+    toast("Delete failed: " + friendly(e), true);
+  }
+}
+
+/* ---------- question editor ---------- */
+function showEditor(q) {
+  window.scrollTo(0, 0);
+  const editing = !!q;
+  const sessionUploads = new Set();
+  const originalUrls = new Set(q ? imageUrlsOf(q) : []);
+  let busy = 0;
+
+  function imageControl(initial) {
+    let url = initial || null;
+    const preview = h("div", {});
+    const status = h("div", { class: "hint" });
+    const file = h("input", { type: "file", accept: "image/png,image/jpeg" });
+    const removeBtn = h("button", { class: "btn tiny", type: "button" }, "Remove image");
+    function draw() {
+      preview.replaceChildren();
+      if (url && safeImage(url)) preview.append(h("img", { class: "prev", src: url, alt: "Preview" }));
+      removeBtn.style.display = url ? "" : "none";
+    }
+    file.addEventListener("change", async () => {
+      const f = file.files[0];
+      if (!f) return;
+      if (!["image/png", "image/jpeg"].includes(f.type)) { status.textContent = "Only PNG or JPG images are allowed."; file.value = ""; return; }
+      if (f.size > 2 * 1024 * 1024) { status.textContent = "That image is over 2 MB. Please use a smaller one."; file.value = ""; return; }
+      status.textContent = "Uploading...";
+      file.disabled = true; busy++;
+      try {
+        const newUrl = await uploadImage(f);
+        sessionUploads.add(newUrl);
+        url = newUrl;
+        status.textContent = "Uploaded. It's attached when you save the question.";
+        draw();
+      } catch (e) {
+        console.error(e);
+        status.textContent = "Upload failed: " + friendly(e);
+      }
+      busy--; file.disabled = false; file.value = "";
+    });
+    removeBtn.addEventListener("click", () => { url = null; status.textContent = "Image removed (applies when you save)."; draw(); });
+    draw();
+    return { el: h("div", { class: "imgctl" }, preview, file, " ", removeBtn, status), getUrl: () => url };
+  }
+
+  // basic fields
+  const subjectSel = select([["", "Choose subject..."], ...meta.subjects.map(s => [String(s.id), s.name])], q ? String(q.subject_id) : "");
+  const paperSel = h("select", {}), topicSel = h("select", {}), subtopicSel = h("select", {});
+  const formatSel = select([["", "Choose format..."], ["mcq", "Multiple choice"], ["open", "Open ended"]], q ? q.format : "");
+  const marks = h("input", { type: "number", min: "0", step: "1", placeholder: "e.g. 3" });
+  if (q && q.marks !== null && q.marks !== undefined) marks.value = q.marks;
+  const statusSel = select([["published", "Published (students can see it)"], ["draft", "Draft (only you can see it)"]], q ? q.status : "published");
+
+  function refreshPapers(keep) {
+    const s = meta.subjects.find(x => String(x.id) === subjectSel.value);
+    setOptions(paperSel, [["", s ? "Choose paper..." : "Choose subject first"], ...(s ? s.papers : []).map(p => [p, "Paper " + p])], keep);
+  }
+  function refreshTopics(keep) {
+    const list = meta.topics.filter(t => String(t.subject_id) === subjectSel.value);
+    setOptions(topicSel, [["", subjectSel.value ? "Unassigned" : "Choose subject first"], ...list.map(t => [String(t.id), t.name])], keep);
+  }
+  function refreshSubtopics(keep) {
+    const list = meta.subtopics.filter(s => String(s.topic_id) === topicSel.value);
+    setOptions(subtopicSel, [["", topicSel.value ? "None (topic only)" : "Choose topic first"], ...list.map(s => [String(s.id), s.name])], keep);
+  }
+  refreshPapers(q ? q.paper : ""); refreshTopics(q && q.topic_id ? String(q.topic_id) : ""); refreshSubtopics(q && q.subtopic_id ? String(q.subtopic_id) : "");
+  subjectSel.addEventListener("change", () => { refreshPapers(); refreshTopics(); refreshSubtopics(); });
+  topicSel.addEventListener("change", () => refreshSubtopics());
+
+  // content fields
+  const qText = h("textarea", {}, q ? q.question_text || "" : "");
+  const qImg = imageControl(q ? q.question_image_url : null);
+  const expl = h("textarea", {}, q ? q.explanation || "" : "");
+  const modelA = h("textarea", {}, q ? q.model_answer || "" : "");
+  const scheme = h("textarea", {}, q ? q.marking_scheme || "" : "");
+
+  const optCtl = ["A", "B", "C", "D"].map(label => {
+    const ex = (q && Array.isArray(q.options) ? q.options.find(o => o.label === label) : null) || {};
+    const text = h("input", { type: "text", placeholder: "Option " + label + " text" });
+    text.value = ex.text || "";
+    const radio = h("input", { type: "radio", name: "correct", value: label });
+    if (q && q.correct_option === label) radio.checked = true;
+    return { label, text, radio, img: imageControl(ex.image_url || null) };
+  });
+
+  const mcqBox = h("div", { class: "box" },
+    h("h2", {}, "Answer options"),
+    h("p", { class: "muted small" }, "Each option needs text, an image, or both. Tick \"Correct\" beside the right answer."),
+    ...optCtl.map(o => h("div", { class: "opt-row" },
+      h("div", { class: "opt-head" }, h("strong", {}, "Option " + o.label), h("label", {}, o.radio, " Correct")),
+      o.text, o.img.el)));
+  const openBox = h("div", { class: "box" },
+    h("h2", {}, "Open-ended answer"),
+    field("Model answer (optional)", modelA, "What a full-marks answer looks like."),
+    field("Marking scheme (optional)", scheme, "Where the marks are awarded. This is separate from the model answer."));
+  function syncFormat() {
+    mcqBox.style.display = formatSel.value === "mcq" ? "" : "none";
+    openBox.style.display = formatSel.value === "open" ? "" : "none";
+  }
+  formatSel.addEventListener("change", syncFormat);
+  syncFormat();
+
+  const errBox = h("div", { class: "error", style: "display:none" });
+  function fail(msg) { errBox.textContent = msg; errBox.style.display = ""; errBox.scrollIntoView({ behavior: "smooth", block: "center" }); }
+
+  const saveBtn = h("button", { class: "btn primary", type: "button" }, editing ? "Save changes" : "Save question");
+  const cancelBtn = h("button", { class: "btn", type: "button" }, "Cancel");
+
+  cancelBtn.addEventListener("click", async () => {
+    if (!confirm("Leave without saving? Unsaved changes will be lost.")) return;
+    await removeFiles([...sessionUploads]);
+    showList();
+  });
+
+  saveBtn.addEventListener("click", async () => {
+    errBox.style.display = "none";
+    if (busy > 0) return fail("An image is still uploading. Wait a moment and try again.");
+
+    const fmt = formatSel.value;
+    const subjectId = subjectSel.value ? Number(subjectSel.value) : null;
+    const topicId = topicSel.value ? Number(topicSel.value) : null;
+    const subtopicId = subtopicSel.value ? Number(subtopicSel.value) : null;
+    const text = qText.value.trim();
+    const qImage = qImg.getUrl();
+    const marksRaw = marks.value.trim();
+
+    if (!subjectId) return fail("Please choose a subject.");
+    const subject = meta.subjects.find(s => s.id === subjectId);
+    if (!paperSel.value || !subject.papers.includes(paperSel.value)) return fail("Please choose an exam paper.");
+    if (!fmt) return fail("Please choose a question format.");
+    if (!text && !qImage) return fail("Please write the question text or add a question image.");
+    if (marksRaw !== "" && !/^\d+$/.test(marksRaw)) return fail("Marks must be a whole number (or left empty).");
+    if (topicId) { const t = meta.topics.find(x => x.id === topicId); if (!t || t.subject_id !== subjectId) return fail("That topic doesn't belong to the chosen subject."); }
+    if (subtopicId) { const s = meta.subtopics.find(x => x.id === subtopicId); if (!s || s.topic_id !== topicId) return fail("That subtopic doesn't belong to the chosen topic."); }
+
+    let options = [], correct = null;
+    if (fmt === "mcq") {
+      options = optCtl.map(o => ({ label: o.label, text: o.text.value.trim(), image_url: o.img.getUrl() }));
+      const missing = options.find(o => !o.text && !o.image_url);
+      if (missing) return fail("Option " + missing.label + " needs text or an image.");
+      const picked = optCtl.find(o => o.radio.checked);
+      if (!picked) return fail("Please tick which option is the correct answer.");
+      correct = picked.label;
+    }
+
+    const payload = {
+      subject_id: subjectId, topic_id: topicId, subtopic_id: subtopicId,
+      paper: paperSel.value, format: fmt, question_text: text, question_image_url: qImage,
+      marks: marksRaw === "" ? null : Number(marksRaw),
+      options, correct_option: correct,
+      explanation: expl.value.trim() || null,
+      model_answer: fmt === "open" ? (modelA.value.trim() || null) : null,
+      marking_scheme: fmt === "open" ? (scheme.value.trim() || null) : null,
+      status: statusSel.value
+    };
+    if (editing) payload.updated_at = new Date().toISOString();
+
+    saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = "Saving...";
+    try {
+      const res = editing
+        ? await db.from("questions").update(payload).eq("id", q.id).select()
+        : await db.from("questions").insert(payload).select();
+      if (res.error) throw res.error;
+      if (!res.data || res.data.length !== 1) throw new Error("The question was not saved (no permission, or it no longer exists).");
+      const finalUrls = new Set(imageUrlsOf(res.data[0]));
+      await removeFiles([...originalUrls, ...sessionUploads].filter(u => !finalUrls.has(u)));
+      questions = await fetchAll("questions", "*", "id", false);
+      showList();
+      toast("Question saved.");
+    } catch (e) {
+      console.error(e);
+      saveBtn.disabled = false; cancelBtn.disabled = false;
+      saveBtn.textContent = editing ? "Save changes" : "Save question";
+      fail("Couldn't save: " + friendly(e) + " Your work is still here, so you can try again.");
+    }
+  });
+
+  app.replaceChildren(h("div", { class: "panel" },
+    h("h1", {}, editing ? "Edit question #" + q.id : "New question"),
+    h("div", { class: "grid2" },
+      field("Subject *", subjectSel), field("Exam paper *", paperSel), field("Question format *", formatSel),
+      field("Marks (optional)", marks), field("Topic", topicSel), field("Subtopic", subtopicSel), field("Status", statusSel)),
+    field("Question text", qText, "Plain text for now. Equations and tables are coming in the next step."),
+    h("div", { class: "field" }, h("span", { class: "lbl" }, "Question image or diagram (optional)"), qImg.el,
+      h("span", { class: "hint" }, "PNG or JPG, max 2 MB.")),
+    mcqBox, openBox,
+    field("Explanation / worked solution (optional)", expl),
+    errBox,
+    h("div", { class: "actions" }, saveBtn, cancelBtn)));
+}
+
+/* ---------- start ---------- */
+(async () => {
+  const { data } = await db.auth.getSession();
+  if (data.session) startApp(); else showLogin();
+})();
+</script>
+</body>
+</html>
