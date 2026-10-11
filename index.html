@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Revision Hub</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <style>
   :root {
     --bg: #f6f7fb; --card: #ffffff; --text: #1c2434; --muted: #667085;
@@ -21,10 +22,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.5;
   }
-  header {
-    background: var(--card); border-bottom: 1px solid var(--line);
-    padding: 14px 20px;
-  }
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 20px; }
   header .inner { max-width: 960px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .logo { font-weight: 800; font-size: 20px; color: var(--accent); text-decoration: none; }
   main { max-width: 960px; margin: 0 auto; padding: 20px; }
@@ -58,10 +56,10 @@
   .q { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
   .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .badge { background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
-  .qtext { white-space: pre-wrap; font-size: 16px; }
+  .qtext { white-space: pre-wrap; font-size: 16px; word-break: break-word; }
   .qimg { max-width: 100%; height: auto; margin-top: 12px; border-radius: 8px; border: 1px solid var(--line); }
   .opts { margin-top: 12px; display: grid; gap: 8px; }
-  .opt { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .opt { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; word-break: break-word; }
   .opt img { display: block; max-width: 100%; height: auto; margin-top: 8px; border-radius: 6px; }
   .empty { background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); }
   .error { background: var(--card); border: 1px solid var(--danger); color: var(--danger); border-radius: 14px; padding: 18px; }
@@ -82,6 +80,9 @@
   <div id="app"></div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/mhchem.min.js"></script>
+<script src="rich.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const SUPABASE_URL = "https://ovescrsrikwonurarbbl.supabase.co";
@@ -92,7 +93,6 @@ const app = document.getElementById("app");
 const crumbs = document.getElementById("crumbs");
 
 /* ---------- small helpers ---------- */
-// Builds page elements safely. All text is inserted as plain text, never as HTML.
 function h(tag, props, ...kids) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {
@@ -217,15 +217,20 @@ function questionCard(q) {
     h("span", { class: "badge" }, q.format === "mcq" ? "Multiple choice" : "Open ended"),
     q.marks !== null && q.marks !== undefined ? h("span", { class: "badge" }, plural(q.marks, "mark")) : null
   ));
-  c.append(h("div", { class: "qtext" }, q.question_text || ""));
+  const qt = h("div", { class: "qtext" });
+  Rich.render(qt, q.question_text || "", q.tables);
+  c.append(qt);
   if (safeImage(q.question_image_url)) {
     c.append(h("img", { class: "qimg", src: q.question_image_url, alt: "Question diagram", loading: "lazy" }));
   }
   if (q.format === "mcq" && Array.isArray(q.options) && q.options.length) {
-    c.append(h("div", { class: "opts" }, q.options.map(o =>
-      h("div", { class: "opt" },
-        h("strong", {}, (o.label || "") + ". "), o.text || "",
-        safeImage(o.image_url) ? h("img", { src: o.image_url, alt: "Option " + (o.label || "") + " image", loading: "lazy" }) : null))));
+    c.append(h("div", { class: "opts" }, q.options.map(o => {
+      const txt = h("span", {});
+      Rich.render(txt, o.text || "", [], { allowTables: false });
+      return h("div", { class: "opt" },
+        h("strong", {}, (o.label || "") + ". "), txt,
+        safeImage(o.image_url) ? h("img", { src: o.image_url, alt: "Option " + (o.label || "") + " image", loading: "lazy" }) : null);
+    })));
   }
   return c;
 }
