@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Revision Hub - Admin</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <style>
   :root {
     --bg: #f6f7fb; --card: #ffffff; --text: #1c2434; --muted: #667085;
@@ -38,7 +39,7 @@
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--bg); color: var(--text); font-size: 15px; font-family: inherit;
   }
-  textarea { min-height: 90px; resize: vertical; }
+  textarea { min-height: 70px; resize: vertical; }
   .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 14px; }
   .box { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
   .opt-row { border-top: 1px solid var(--line); padding: 12px 0; }
@@ -60,6 +61,7 @@
   .badge { background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
   .badge.draft { background: #fef0c7; color: #93370d; }
   .rtext { white-space: pre-wrap; word-break: break-word; }
+  .clamp { max-height: 8em; overflow: hidden; }
   .empty { background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); }
   .error { background: var(--card); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px; margin: 12px 0; }
   .imgctl { margin-top: 4px; }
@@ -85,6 +87,11 @@
 <main><div id="app"></div></main>
 <div id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/mhchem.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathlive@0.105.2"></script>
+<script src="rich.js"></script>
+<script src="rich-editor.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const SUPABASE_URL = "https://ovescrsrikwonurarbbl.supabase.co";
@@ -259,8 +266,10 @@ function rowFor(q) {
   if (q.topic_id) place += " › " + nameOf(meta.topics, q.topic_id);
   if (q.subtopic_id) place += " › " + nameOf(meta.subtopics, q.subtopic_id);
   if (!q.subtopic_id) place += q.topic_id ? "  (no subtopic)" : "  (UNASSIGNED)";
-  const text = (q.question_text || "").trim() || "(image-only question)";
-  const short = text.length > 160 ? text.slice(0, 160) + "…" : text;
+
+  const body = h("div", { class: "rtext clamp" });
+  if ((q.question_text || "").trim()) Rich.render(body, q.question_text, q.tables);
+  else body.textContent = "(image-only question)";
 
   const edit = h("button", { class: "btn tiny", type: "button" }, "Edit");
   edit.addEventListener("click", () => showEditor(q));
@@ -276,7 +285,7 @@ function rowFor(q) {
       h("span", { class: "badge" }, q.format === "mcq" ? "Multiple choice" : "Open ended"),
       q.marks !== null && q.marks !== undefined ? h("span", { class: "badge" }, plural(q.marks, "mark")) : null,
       q.status === "draft" ? h("span", { class: "badge draft" }, "Draft") : null),
-    h("div", { class: "rtext" }, short),
+    body,
     h("div", { class: "muted small" }, place),
     actions);
 }
@@ -306,6 +315,10 @@ function showEditor(q) {
   const sessionUploads = new Set();
   const originalUrls = new Set(q ? imageUrlsOf(q) : []);
   let busy = 0;
+
+  // all tables for this question live here, keyed by id
+  const tableMap = {};
+  (q && Array.isArray(q.tables) ? q.tables : []).forEach(t => { if (t && t.id) tableMap[t.id] = t; });
 
   function imageControl(initial) {
     let url = initial || null;
@@ -366,32 +379,34 @@ function showEditor(q) {
   subjectSel.addEventListener("change", () => { refreshPapers(); refreshTopics(); refreshSubtopics(); });
   topicSel.addEventListener("change", () => refreshSubtopics());
 
-  // content fields
-  const qText = h("textarea", {}, q ? q.question_text || "" : "");
+  // content fields (with equation, formula and table tools)
+  const qField = RichEditor.richField({
+    label: "Question text", rows: 5, value: q ? q.question_text || "" : "", tables: tableMap,
+    hint: "Use the buttons to add equations, chemical formulas and tables. To write a real dollar sign, type \\$."
+  });
   const qImg = imageControl(q ? q.question_image_url : null);
-  const expl = h("textarea", {}, q ? q.explanation || "" : "");
-  const modelA = h("textarea", {}, q ? q.model_answer || "" : "");
-  const scheme = h("textarea", {}, q ? q.marking_scheme || "" : "");
+  const explField = RichEditor.richField({ label: "Explanation / worked solution (optional)", rows: 4, value: q ? q.explanation || "" : "", tables: tableMap });
+  const modelField = RichEditor.richField({ label: "Model answer (optional)", rows: 4, value: q ? q.model_answer || "" : "", tables: tableMap, hint: "What a full-marks answer looks like." });
+  const schemeField = RichEditor.richField({ label: "Marking scheme (optional)", rows: 4, value: q ? q.marking_scheme || "" : "", tables: tableMap, hint: "Where the marks are awarded. This is separate from the model answer. A table works well here." });
 
   const optCtl = ["A", "B", "C", "D"].map(label => {
     const ex = (q && Array.isArray(q.options) ? q.options.find(o => o.label === label) : null) || {};
-    const text = h("input", { type: "text", placeholder: "Option " + label + " text" });
-    text.value = ex.text || "";
+    const rf = RichEditor.richField({ label: "", rows: 2, value: ex.text || "", tables: {}, allowTables: false });
+    rf.box.placeholder = "Option " + label + " text";
     const radio = h("input", { type: "radio", name: "correct", value: label });
     if (q && q.correct_option === label) radio.checked = true;
-    return { label, text, radio, img: imageControl(ex.image_url || null) };
+    return { label, rf, radio, img: imageControl(ex.image_url || null) };
   });
 
   const mcqBox = h("div", { class: "box" },
     h("h2", {}, "Answer options"),
-    h("p", { class: "muted small" }, "Each option needs text, an image, or both. Tick \"Correct\" beside the right answer."),
+    h("p", { class: "muted small" }, "Each option needs text, an image, or both. Tick \"Correct\" beside the right answer. Equations and formulas work in options too."),
     ...optCtl.map(o => h("div", { class: "opt-row" },
       h("div", { class: "opt-head" }, h("strong", {}, "Option " + o.label), h("label", {}, o.radio, " Correct")),
-      o.text, o.img.el)));
+      o.rf.el, o.img.el)));
   const openBox = h("div", { class: "box" },
     h("h2", {}, "Open-ended answer"),
-    field("Model answer (optional)", modelA, "What a full-marks answer looks like."),
-    field("Marking scheme (optional)", scheme, "Where the marks are awarded. This is separate from the model answer."));
+    modelField.el, schemeField.el);
   function syncFormat() {
     mcqBox.style.display = formatSel.value === "mcq" ? "" : "none";
     openBox.style.display = formatSel.value === "open" ? "" : "none";
@@ -419,7 +434,10 @@ function showEditor(q) {
     const subjectId = subjectSel.value ? Number(subjectSel.value) : null;
     const topicId = topicSel.value ? Number(topicSel.value) : null;
     const subtopicId = subtopicSel.value ? Number(subtopicSel.value) : null;
-    const text = qText.value.trim();
+    const text = qField.getValue();
+    const explVal = explField.getValue();
+    const modelVal = modelField.getValue();
+    const schemeVal = schemeField.getValue();
     const qImage = qImg.getUrl();
     const marksRaw = marks.value.trim();
 
@@ -434,7 +452,7 @@ function showEditor(q) {
 
     let options = [], correct = null;
     if (fmt === "mcq") {
-      options = optCtl.map(o => ({ label: o.label, text: o.text.value.trim(), image_url: o.img.getUrl() }));
+      options = optCtl.map(o => ({ label: o.label, text: o.rf.getValue(), image_url: o.img.getUrl() }));
       const missing = options.find(o => !o.text && !o.image_url);
       if (missing) return fail("Option " + missing.label + " needs text or an image.");
       const picked = optCtl.find(o => o.radio.checked);
@@ -442,14 +460,40 @@ function showEditor(q) {
       correct = picked.label;
     }
 
+    // check every equation in the content that will be saved
+    const toCheck = [["Question text", text], ["Explanation", explVal]];
+    if (fmt === "open") toCheck.push(["Model answer", modelVal], ["Marking scheme", schemeVal]);
+    if (fmt === "mcq") options.forEach(o => toCheck.push(["Option " + o.label, o.text]));
+    for (const [name, val] of toCheck) {
+      const msg = Rich.validate(val);
+      if (msg) return fail(name + ": " + msg);
+    }
+
+    // keep only tables that are actually used, and check their cells
+    const savedTexts = [text, explVal];
+    if (fmt === "open") savedTexts.push(modelVal, schemeVal);
+    const refIds = [...new Set(savedTexts.flatMap(t => Rich.tableRefs(t)))];
+    const lost = refIds.find(id => !tableMap[id]);
+    if (lost) return fail("The text refers to a table that no longer exists ([[table:" + lost + "]]). Remove that line or insert the table again.");
+    const tablesOut = refIds.map(id => tableMap[id]);
+    for (const t of tablesOut) {
+      for (let r = 0; r < t.rows.length; r++) {
+        for (let c = 0; c < t.rows[r].length; c++) {
+          const msg = Rich.validate(t.rows[r][c]);
+          if (msg) return fail("Table, row " + (r + 1) + ", column " + (c + 1) + ": " + msg);
+        }
+      }
+    }
+
     const payload = {
       subject_id: subjectId, topic_id: topicId, subtopic_id: subtopicId,
       paper: paperSel.value, format: fmt, question_text: text, question_image_url: qImage,
       marks: marksRaw === "" ? null : Number(marksRaw),
       options, correct_option: correct,
-      explanation: expl.value.trim() || null,
-      model_answer: fmt === "open" ? (modelA.value.trim() || null) : null,
-      marking_scheme: fmt === "open" ? (scheme.value.trim() || null) : null,
+      explanation: explVal || null,
+      model_answer: fmt === "open" ? (modelVal || null) : null,
+      marking_scheme: fmt === "open" ? (schemeVal || null) : null,
+      tables: tablesOut,
       status: statusSel.value
     };
     if (editing) payload.updated_at = new Date().toISOString();
@@ -479,11 +523,11 @@ function showEditor(q) {
     h("div", { class: "grid2" },
       field("Subject *", subjectSel), field("Exam paper *", paperSel), field("Question format *", formatSel),
       field("Marks (optional)", marks), field("Topic", topicSel), field("Subtopic", subtopicSel), field("Status", statusSel)),
-    field("Question text", qText, "Plain text for now. Equations and tables are coming in the next step."),
+    qField.el,
     h("div", { class: "field" }, h("span", { class: "lbl" }, "Question image or diagram (optional)"), qImg.el,
       h("span", { class: "hint" }, "PNG or JPG, max 2 MB.")),
     mcqBox, openBox,
-    field("Explanation / worked solution (optional)", expl),
+    explField.el,
     errBox,
     h("div", { class: "actions" }, saveBtn, cancelBtn)));
 }
