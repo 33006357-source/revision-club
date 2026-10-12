@@ -70,6 +70,17 @@
 </style>
 </head>
 <body>
+<script>
+window.addEventListener("error", function (e) {
+  var t = e.target, msg;
+  if (t && (t.src || t.href) && t !== window) msg = "Could not load this file: " + (t.src || t.href);
+  else msg = "Error: " + e.message + " (" + (e.filename || "") + " line " + (e.lineno || "?") + ")";
+  var box = document.createElement("pre");
+  box.style.cssText = "background:#fee;color:#900;padding:12px;margin:12px;white-space:pre-wrap;font-size:13px";
+  box.textContent = msg;
+  document.body.prepend(box);
+}, true);
+</script>
 <header>
   <div class="inner">
     <a class="logo" href="#/">Revision Hub</a>
