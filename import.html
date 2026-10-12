@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Revision Hub - Import questions</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+  :root {
+    --bg: #f6f7fb; --card: #ffffff; --text: #1c2434; --muted: #667085;
+    --line: #e4e7ec; --accent: #4f46e5; --accent-soft: #eef2ff; --danger: #b42318;
+    --ok: #067647; --ok-soft: #ecfdf3; --bad-soft: #fef3f2; --warn: #93370d; --warn-soft: #fef0c7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420; --card: #18202f; --text: #e8ecf4; --muted: #9aa4b5;
+      --line: #2a3447; --accent: #818cf8; --accent-soft: #232b45; --danger: #f97066;
+      --ok: #47cd89; --ok-soft: #10261c; --bad-soft: #2c1715; --warn: #fdb022; --warn-soft: #2e2310;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 20px; }
+  header .inner { max-width: 960px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .logo { font-weight: 800; font-size: 20px; color: var(--accent); text-decoration: none; }
+  .hlinks { display: flex; gap: 14px; }
+  .hlinks a { color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 600; }
+  main { max-width: 960px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 24px; margin: 0 0 12px; }
+  h2 { font-size: 17px; margin: 18px 0 6px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 14px; }
+  .narrow { max-width: 420px; margin: 40px auto; }
+  .field { display: block; margin-bottom: 14px; }
+  .lbl { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  input[type=text], input[type=email], input[type=password], select {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); font-size: 15px; font-family: inherit;
+  }
+  select.auto { width: auto; max-width: 100%; }
+  .btn { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+    color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; font-family: inherit; }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .error { background: var(--card); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px; margin: 12px 0; white-space: pre-wrap; }
+  .okbox { background: var(--ok-soft); border: 1px solid var(--ok); color: var(--ok); border-radius: 10px; padding: 12px; margin: 12px 0; font-weight: 600; }
+  ol, ul { margin: 6px 0 6px 20px; padding: 0; }
+  li { margin: 3px 0; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; font-weight: 600; }
+  code { background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .stat { border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 13px; }
+  .stat.ok { background: var(--ok-soft); color: var(--ok); }
+  .stat.dup { background: var(--warn-soft); color: var(--warn); }
+  .stat.err { background: var(--bad-soft); color: var(--danger); }
+  .rowcard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; }
+  .rowcard.err { border-color: var(--danger); }
+  .rowcard.dup { border-color: var(--warn); }
+  .rowcard .body { flex: 1; min-width: 0; }
+  .rowcard input[type=checkbox] { margin-top: 5px; width: 18px; height: 18px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .badge { background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .badge.ok { background: var(--ok-soft); color: var(--ok); }
+  .badge.dup { background: var(--warn-soft); color: var(--warn); }
+  .badge.err { background: var(--bad-soft); color: var(--danger); }
+  .preview { white-space: pre-wrap; word-break: break-word; max-height: 6em; overflow: hidden; }
+  .errs { color: var(--danger); font-size: 13px; margin-top: 6px; }
+  .warns { color: var(--warn); font-size: 13px; margin-top: 6px; }
+  .errs div, .warns div { margin-top: 2px; }
+  @media (max-width: 520px) { main { padding: 14px; } .panel { padding: 14px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <span class="logo">Revision Hub - Import questions</span>
+    <div class="hlinks">
+      <a href="admin.html">Back to admin</a>
+      <a href="index.html">View site</a>
+    </div>
+  </div>
+</header>
+<main><div id="app"><p class="muted">Loading...</p></div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/mhchem.min.js"></script>
+<script src="rich.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://ovescrsrikwonurarbbl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_TxKpFdVrHZJ0yMwYTl9RHQ_xgb4wo_o";
+const app = document.getElementById("app");
+
+/* ---------- helpers ---------- */
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "class") e.className = v; else e.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+const friendly = e => (e && e.message) ? e.message : "Unknown error";
+const norm = s => String(s == null ? "" : s).toLowerCase().replace(/\s+/g, " ").trim();
+
+if (typeof supabase === "undefined" || typeof Rich === "undefined") {
+  app.replaceChildren(h("div", { class: "error" },
+    "This page could not start because a required file did not load (rich.js or the Supabase library). " +
+    "Check that rich.js exists in your repository, then hard refresh."));
+  throw new Error("Missing scripts");
+}
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function fetchAll(table, columns) {
+  let all = [], from = 0;
+  while (true) {
+    const { data, error } = await db.from(table).select(columns).order("id").range(from, from + 999);
+    if (error) throw error;
+    all = all.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+  return all;
+}
+
+/* ---------- state ---------- */
+let meta = { subjects: [], topics: [], subtopics: [] };
+let existing = [];
+
+const COLUMNS = ["subject", "paper", "format", "topic", "subtopic", "question_text", "marks",
+  "option_a", "option_b", "option_c", "option_d", "correct_option", "explanation", "model_answer", "marking_scheme"];
+const REQUIRED = ["subject", "paper", "format", "question_text"];
+const ALIASES = {
+  question: "question_text", questiontext: "question_text", text: "question_text",
+  mark: "marks", correct: "correct_option", correct_answer: "correct_option", answer: "correct_option",
+  correctoption: "correct_option", worked_solution: "explanation", markscheme: "marking_scheme", mark_scheme: "marking_scheme",
+  modelanswer: "model_answer"
+};
+function normHeader(s) {
+  const k = String(s || "").replace(/^\uFEFF/, "").trim().toLowerCase().replace(/[\s\-]+/g, "_").replace(/[^a-z_]/g, "");
+  return ALIASES[k] || k;
+}
+
+/* ---------- CSV reading ---------- */
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const firstLine = text.split("\n")[0];
+  let delim = ",", best = -1;
+  [",", ";", "\t"].forEach(c => {
+    const n = firstLine.split(c).length - 1;
+    if (n > best) { best = n; delim = c; }
+  });
+  const rows = [];
+  let row = [], field = "", inQ = false, i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        inQ = false; i++; continue;
+      }
+      field += ch; i++; continue;
+    }
+    if (ch === '"' && field === "") { inQ = true; i++; continue; }
+    if (ch === delim) { row.push(field); field = ""; i++; continue; }
+    if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
+    field += ch; i++;
+  }
+  if (inQ) throw new Error("A quoted cell in the file is never closed (a missing closing quote mark). Please check the file in your spreadsheet app and save it again.");
+  if (field !== "" || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+/* ---------- checking one row ---------- */
+function processRow(n, rec, keys, seen) {
+  const errors = [], warnings = [];
+  const out = { n: n, rec: rec, errors: errors, warnings: warnings, state: "ok", selected: true, payload: null, where: "" };
+
+  const subj = meta.subjects.find(s => norm(s.name) === norm(rec.subject));
+  if (!subj) errors.push(rec.subject
+    ? "Subject \"" + rec.subject + "\" was not found. Use: " + meta.subjects.map(s => s.name).join(", ") + "."
+    : "Subject is empty.");
+
+  const paper = rec.paper.toUpperCase().replace(/^PAPER\s*/, "").trim();
+  if (subj) {
+    if (!subj.papers.includes(paper)) errors.push("Paper \"" + rec.paper + "\" is not valid for " + subj.name + ". Use: " + subj.papers.join(", ") + ".");
+  } else if (!paper) errors.push("Paper is empty.");
+
+  const f = norm(rec.format).replace(/[-_]/g, " ");
+  let format = null;
+  if (["mcq", "mc", "multiple choice", "multiplechoice"].includes(f)) format = "mcq";
+  else if (["open", "open ended", "openended", "structured", "written"].includes(f)) format = "open";
+  else errors.push(rec.format
+    ? "Format \"" + rec.format + "\" is not recognised. Use: mcq or open."
+    : "Format is empty. Use: mcq or open.");
+
+  let topic = null, subtopic = null;
+  if (subj && rec.topic) {
+    const tn = norm(rec.topic);
+    const topicsHere = meta.topics.filter(t => t.subject_id === subj.id);
+    const cands = topicsHere.filter(t => norm(t.name) === tn || norm(t.name.split(" - ")[0]) === tn);
+    if (cands.length === 1) topic = cands[0];
+    else if (cands.length === 0) errors.push("Topic \"" + rec.topic + "\" was not found in " + subj.name + ". Valid topics: " +
+      topicsHere.map(t => t.name.split(" - ")[0]).join(", ") + ".");
+    else errors.push("Topic \"" + rec.topic + "\" matches more than one topic. Please use the full name.");
+  }
+  if (rec.subtopic) {
+    if (!rec.topic) errors.push("A subtopic needs a topic as well.");
+    else if (topic) {
+      const sn = norm(rec.subtopic);
+      const subsHere = meta.subtopics.filter(s => s.topic_id === topic.id);
+      const sc = subsHere.filter(s => norm(s.name) === sn || norm(s.name.split(" ")[0]) === sn);
+      if (sc.length === 1) subtopic = sc[0];
+      else if (sc.length === 0) errors.push("Subtopic \"" + rec.subtopic + "\" was not found in " + topic.name.split(" - ")[0] +
+        ". Valid subtopics: " + subsHere.map(s => s.name.split(" ")[0]).join(", ") + ".");
+      else errors.push("Subtopic \"" + rec.subtopic + "\" matches more than one subtopic. Please use the full name.");
+    }
+  }
+  if (!rec.topic) warnings.push("No topic given, so this question will be saved as unassigned.");
+  out.where = [subj ? subj.name : "?", topic ? topic.name.split(" - ")[0] : null, subtopic ? subtopic.name.split(" ")[0] : null].filter(Boolean).join(" › ");
+
+  let marks = null;
+  if (rec.marks !== "") {
+    if (/^\d+$/.test(rec.marks)) marks = Number(rec.marks);
+    else errors.push("Marks must be a whole number (or left empty).");
+  }
+  if (!rec.question_text) errors.push("Question text is empty.");
+
+  const options = [];
+  let correct = null;
+  if (format === "mcq") {
+    ["a", "b", "c", "d"].forEach(l => {
+      const t = rec["option_" + l];
+      if (!t) errors.push("Option " + l.toUpperCase() + " is empty. Multiple choice needs all four options.");
+      options.push({ label: l.toUpperCase(), text: t, image_url: null });
+    });
+    correct = rec.correct_option.toUpperCase().replace(/^OPTION\s*/, "").replace(/[.)]$/, "").trim();
+    if (!["A", "B", "C", "D"].includes(correct)) {
+      errors.push(rec.correct_option ? "Correct option \"" + rec.correct_option + "\" must be A, B, C or D." : "Correct option is empty. Use A, B, C or D.");
+      correct = null;
+    }
+    if (rec.model_answer || rec.marking_scheme) warnings.push("Model answer and marking scheme are ignored for multiple choice.");
+  } else if (format === "open") {
+    if (rec.option_a || rec.option_b || rec.option_c || rec.option_d || rec.correct_option) warnings.push("Options and correct option are ignored for open-ended questions.");
+    if (!rec.model_answer && !rec.marking_scheme) warnings.push("No model answer or marking scheme was given.");
+  }
+
+  const toCheck = [["Question text", rec.question_text], ["Explanation", rec.explanation]];
+  if (format === "open") toCheck.push(["Model answer", rec.model_answer], ["Marking scheme", rec.marking_scheme]);
+  if (format === "mcq") options.forEach(o => toCheck.push(["Option " + o.label, o.text]));
+  toCheck.forEach(([label, val]) => {
+    const m = Rich.validate(val);
+    if (m) errors.push(label + ": " + m);
+    if (Rich.tableRefs(val).length) errors.push(label + ": tables cannot be imported from a CSV. Add them later in the editor.");
+  });
+
+  if (subj && format && rec.question_text && subj.papers.includes(paper)) {
+    const key = [subj.id, paper, format, norm(rec.question_text)].join("|");
+    if (keys.has(key)) { out.dupNote = "Looks the same as question #" + keys.get(key) + " already in your question bank."; }
+    else if (seen.has(key)) { out.dupNote = "Looks the same as row " + seen.get(key) + " earlier in this file."; }
+    else seen.set(key, n);
+  }
+
+  if (errors.length) { out.state = "error"; out.selected = false; }
+  else {
+    out.payload = {
+      subject_id: subj.id, topic_id: topic ? topic.id : null, subtopic_id: subtopic ? subtopic.id : null,
+      paper: paper, format: format, question_text: rec.question_text, question_image_url: null,
+      marks: marks, options: options, correct_option: correct,
+      explanation: rec.explanation || null,
+      model_answer: format === "open" ? (rec.model_answer || null) : null,
+      marking_scheme: format === "open" ? (rec.marking_scheme || null) : null,
+      parts: [], tables: []
+    };
+    if (out.dupNote) { out.state = "dup"; out.selected = false; }
+  }
+  return out;
+}
+
+function analyse(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) throw new Error("The file needs a header row and at least one question row.");
+  const headers = rows[0].map(normHeader);
+  const missing = REQUIRED.filter(c => !headers.includes(c));
+  if (missing.length) throw new Error("The header row is missing these columns: " + missing.join(", ") +
+    ".\nDownload the template to see the correct column names.");
+  const ignored = rows[0].filter((raw, i) => String(raw).trim() && !COLUMNS.includes(headers[i]));
+  const data = [];
+  rows.slice(1).forEach((r, i) => { if (r.some(c => String(c).trim() !== "")) data.push({ n: i + 2, r: r }); });
+  if (!data.length) throw new Error("No question rows were found under the header row.");
+  if (data.length > 500) throw new Error("This file has " + data.length + " question rows. Please split it into files of 500 rows or fewer.");
+
+  const keys = new Map();
+  existing.forEach(e => keys.set([e.subject_id, e.paper, e.format, norm(e.question_text)].join("|"), e.id));
+  const seen = new Map();
+  const results = data.map(x => {
+    const rec = {};
+    COLUMNS.forEach(c => { rec[c] = ""; });
+    headers.forEach((hd, i) => { if (COLUMNS.includes(hd)) rec[hd] = String(x.r[i] == null ? "" : x.r[i]).trim(); });
+    return processRow(x.n, rec, keys, seen);
+  });
+  return { results: results, ignored: ignored };
+}
+
+/* ---------- template download ---------- */
+function csvCell(v) {
+  v = String(v == null ? "" : v);
+  return /[",;\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+function downloadTemplate() {
+  const examples = [
+    ["Physics", "1A", "mcq", "Theme A", "A.1",
+      "A car accelerates uniformly from rest. Which equation gives its final speed $v$ after time $t$ with acceleration $a$?",
+      "1", "$v = at$", "$v = a/t$", "$v = at^2$", "$v = t/a$", "A",
+      "Starting from rest, $u = 0$, so $v = u + at$ becomes $v = at$.", "", ""],
+    ["Chemistry", "2", "open", "Structure 1", "1.4",
+      "Calculate the amount, in mol, of $\\ce{NaCl}$ in 11.7 g of sodium chloride. (Take $M_r = 58.5$.)",
+      "2", "", "", "", "", "", "",
+      "Amount = mass / molar mass = 11.7 / 58.5 = 0.20 mol",
+      "1 mark for dividing 11.7 by 58.5. 1 mark for the answer 0.20 mol."]
+  ];
+  const csv = [COLUMNS].concat(examples).map(r => r.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "revision-hub-template.csv";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- sign in ---------- */
+function showLogin() {
+  const email = h("input", { type: "email", autocomplete: "username", required: "required" });
+  const pass = h("input", { type: "password", autocomplete: "current-password", required: "required" });
+  const err = h("div", { class: "error", style: "display:none" });
+  const btn = h("button", { class: "btn primary", type: "submit" }, "Sign in");
+  const form = h("form", { class: "panel narrow" }, h("h1", {}, "Admin sign in"),
+    h("label", { class: "field" }, h("span", { class: "lbl" }, "Email"), email),
+    h("label", { class: "field" }, h("span", { class: "lbl" }, "Password"), pass), err, btn);
+  form.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    btn.disabled = true; btn.textContent = "Signing in...";
+    const { error } = await db.auth.signInWithPassword({ email: email.value.trim(), password: pass.value });
+    if (error) {
+      err.style.display = ""; err.textContent = "Could not sign in. Check your email and password.";
+      btn.disabled = false; btn.textContent = "Sign in";
+      return;
+    }
+    await start();
+  });
+  app.replaceChildren(form);
+}
+
+async function loadAll() {
+  const [subjects, topics, subtopics, qs] = await Promise.all([
+    fetchAll("subjects", "id,name,papers"),
+    fetchAll("topics", "id,subject_id,name,sort_order"),
+    fetchAll("subtopics", "id,topic_id,name,sort_order"),
+    fetchAll("questions", "id,subject_id,paper,format,question_text")
+  ]);
+  const byOrder = (a, b) => (a.sort_order - b.sort_order) || (a.id - b.id);
+  topics.sort(byOrder); subtopics.sort(byOrder);
+  meta = { subjects: subjects, topics: topics, subtopics: subtopics };
+  existing = qs;
+}
+
+async function start() {
+  app.replaceChildren(h("p", { class: "muted" }, "Loading..."));
+  try { await loadAll(); }
+  catch (e) { app.replaceChildren(h("div", { class: "error" }, "Could not load data: " + friendly(e))); return; }
+  showUpload();
+}
+
+/* ---------- screen 1: choose a file ---------- */
+function referenceBox() {
+  const box = h("details", {}, h("summary", {}, "Show the valid subject, topic and subtopic names"));
+  meta.subjects.forEach(s => {
+    box.append(h("h2", {}, s.name + "  (papers: " + s.papers.join(", ") + ")"));
+    meta.topics.filter(t => t.subject_id === s.id).forEach(t => {
+      const subs = meta.subtopics.filter(x => x.topic_id === t.id);
+      box.append(h("div", { style: "margin-top:8px" }, h("strong", {}, t.name.split(" - ")[0]),
+        t.name.indexOf(" - ") > -1 ? h("span", { class: "muted" }, "  (" + t.name + ")") : null));
+      box.append(h("div", { class: "muted small" }, subs.map(x => x.name).join("  ·  ")));
+    });
+  });
+  return box;
+}
+
+function showUpload() {
+  const fileIn = h("input", { type: "file", accept: ".csv,text/csv" });
+  const err = h("div", { class: "error", style: "display:none" });
+  const tplBtn = h("button", { class: "btn", type: "button" }, "Download the CSV template");
+  tplBtn.addEventListener("click", downloadTemplate);
+
+  fileIn.addEventListener("change", async () => {
+    err.style.display = "none";
+    const f = fileIn.files[0];
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { err.textContent = "That file is over 2 MB. Please split it into smaller files."; err.style.display = ""; return; }
+    try {
+      const text = await f.text();
+      showPreview(analyse(text), f.name);
+    } catch (e) {
+      err.textContent = friendly(e); err.style.display = "";
+    }
+  });
+
+  app.replaceChildren(
+    h("div", { class: "panel" },
+      h("h1", {}, "Import questions from a CSV file"),
+      h("ol", {},
+        h("li", {}, "Download the template and open it in Excel, Numbers or Google Sheets."),
+        h("li", {}, "Fill in one question per row, then save or export it as ", h("strong", {}, "CSV (UTF-8)"), "."),
+        h("li", {}, "Choose the file below. You will see a preview and can fix problems before anything is saved.")),
+      h("div", { class: "actions" }, tplBtn),
+      h("h2", {}, "Rules"),
+      h("ul", {},
+        h("li", {}, h("code", {}, "paper"), " is ", h("code", {}, "1A"), ", ", h("code", {}, "1B"), " or ", h("code", {}, "2"), ". ",
+          h("code", {}, "format"), " is ", h("code", {}, "mcq"), " or ", h("code", {}, "open"), "."),
+        h("li", {}, "For ", h("code", {}, "topic"), " and ", h("code", {}, "subtopic"), " you can type just the code, like ",
+          h("code", {}, "Theme A"), " and ", h("code", {}, "A.1"), ", or the full name."),
+        h("li", {}, "Multiple choice rows need ", h("code", {}, "option_a"), " to ", h("code", {}, "option_d"), " and a ",
+          h("code", {}, "correct_option"), " (A, B, C or D)."),
+        h("li", {}, "Equations go between dollar signs, like ", h("code", {}, "$v = u + at$"), ". Chemical formulas use ",
+          h("code", {}, "$\\ce{H2SO4}$"), ". For a real dollar sign type ", h("code", {}, "\\$"), "."),
+        h("li", {}, "Images, tables and parts such as (a) and (i) cannot be imported from a CSV. Import the question, then open it in the admin page to add them."),
+        h("li", {}, "Up to 500 rows per file.")),
+      referenceBox()),
+    h("div", { class: "panel" },
+      h("label", { class: "lbl" }, "Choose your CSV file"), fileIn, err));
+}
+
+/* ---------- screen 2: preview ---------- */
+function showPreview(res, fileName) {
+  const results = res.results;
+  const nOk = results.filter(r => r.state === "ok").length;
+  const nDup = results.filter(r => r.state === "dup").length;
+  const nErr = results.filter(r => r.state === "error").length;
+
+  const statusSel = h("select", { class: "auto" },
+    h("option", { value: "draft" }, "Draft (recommended: review first)"),
+    h("option", { value: "published" }, "Published (students see them straight away)"));
+  const showSel = h("select", { class: "auto" },
+    h("option", { value: "all" }, "Show all rows"), h("option", { value: "problems" }, "Show only rows with problems"));
+  const importBtn = h("button", { class: "btn primary", type: "button" }, "Import");
+  const backBtn = h("button", { class: "btn", type: "button" }, "Choose a different file");
+  const list = h("div", {});
+
+  function chosen() { return results.filter(r => r.selected && r.state !== "error"); }
+  function refreshButton() {
+    const n = chosen().length;
+    importBtn.textContent = n ? "Import " + plural(n, "question") : "Nothing selected to import";
+    importBtn.disabled = n === 0;
+  }
+  function card(r) {
+    const cb = h("input", { type: "checkbox", "aria-label": "Import row " + r.n });
+    cb.checked = r.selected;
+    cb.disabled = r.state === "error";
+    cb.addEventListener("change", () => { r.selected = cb.checked; refreshButton(); });
+    const prev = h("div", { class: "preview" });
+    Rich.render(prev, r.rec.question_text || "(empty)", [], { allowTables: false });
+    const body = h("div", { class: "body" },
+      h("div", { class: "badges" },
+        h("span", { class: "badge " + (r.state === "ok" ? "ok" : r.state === "dup" ? "dup" : "err") },
+          r.state === "ok" ? "Ready" : r.state === "dup" ? "Possible duplicate" : "Has errors"),
+        h("span", { class: "badge" }, "Row " + r.n),
+        r.payload ? h("span", { class: "badge" }, "Paper " + r.payload.paper) : null,
+        r.payload ? h("span", { class: "badge" }, r.payload.format === "mcq" ? "Multiple choice" : "Open ended") : null,
+        r.payload && r.payload.marks !== null ? h("span", { class: "badge" }, plural(r.payload.marks, "mark")) : null),
+      prev,
+      h("div", { class: "muted small", style: "margin-top:4px" }, r.where),
+      r.errors.length ? h("div", { class: "errs" }, r.errors.map(e => h("div", {}, "✗ " + e))) : null,
+      r.dupNote ? h("div", { class: "warns" }, h("div", {}, "⚠ " + r.dupNote + " Tick the box if you still want to import it.")) : null,
+      r.warnings.length ? h("div", { class: "warns" }, r.warnings.map(w => h("div", {}, "⚠ " + w))) : null);
+    return h("div", { class: "rowcard " + (r.state === "error" ? "err" : r.state === "dup" ? "dup" : "") }, cb, body);
+  }
+  function drawList() {
+    const shown = results.filter(r => showSel.value === "all" || r.state !== "ok" || r.warnings.length);
+    list.replaceChildren(...(shown.length ? shown.map(card) : [h("div", { class: "okbox" }, "No problems found.")]));
+  }
+  showSel.addEventListener("change", drawList);
+  backBtn.addEventListener("click", showUpload);
+  importBtn.addEventListener("click", () => {
+    const n = chosen().length;
+    const how = statusSel.value === "draft" ? "as drafts" : "and publish them straight away";
+    if (confirm("Import " + plural(n, "question") + " " + how + "?")) doImport(results, statusSel.value);
+  });
+  drawList();
+  refreshButton();
+
+  app.replaceChildren(
+    h("div", { class: "panel" },
+      h("h1", {}, "Preview: " + fileName),
+      h("div", { class: "stats" },
+        h("span", { class: "stat ok" }, nOk + " ready"),
+        h("span", { class: "stat dup" }, nDup + " possible " + (nDup === 1 ? "duplicate" : "duplicates")),
+        h("span", { class: "stat err" }, nErr + " with errors")),
+      h("p", { class: "muted small" }, plural(results.length, "row") + " read. Row numbers match your spreadsheet. Rows with errors cannot be imported: fix them in your spreadsheet and choose the file again. Possible duplicates are not ticked, so nothing is imported twice by accident."),
+      res.ignored.length ? h("p", { class: "small", style: "color:var(--warn)" }, "These columns were not recognised and were ignored: " + res.ignored.join(", ")) : null,
+      h("div", { class: "actions" },
+        h("label", { class: "small" }, "Save as: "), statusSel, showSel)),
+    list,
+    h("div", { class: "actions" }, importBtn, backBtn));
+}
+
+/* ---------- screen 3: importing and the report ---------- */
+async function doImport(results, statusValue) {
+  const chosen = results.filter(r => r.selected && r.state !== "error");
+  const ids = [];
+  let failMsg = null;
+  const progress = h("p", {}, "Starting...");
+  app.replaceChildren(h("div", { class: "panel" }, h("h1", {}, "Importing..."), progress,
+    h("p", { class: "muted small" }, "Please keep this page open.")));
+  for (let i = 0; i < chosen.length; i += 50) {
+    const chunk = chosen.slice(i, i + 50);
+    progress.textContent = "Saving questions " + (i + 1) + " to " + (i + chunk.length) + " of " + chosen.length + "...";
+    const rows = chunk.map(r => Object.assign({}, r.payload, { status: statusValue }));
+    try {
+      const res = await db.from("questions").insert(rows).select("id");
+      if (res.error) throw res.error;
+      if (!res.data || res.data.length !== rows.length) throw new Error("The database did not confirm every question in this batch.");
+      res.data.forEach(x => ids.push(x.id));
+    } catch (e) {
+      console.error(e);
+      failMsg = friendly(e);
+      break;
+    }
+  }
+  showReport(results, chosen, ids, failMsg, statusValue);
+}
+
+function showReport(results, chosen, ids, failMsg, statusValue) {
+  const nErr = results.filter(r => r.state === "error").length;
+  const nDupSkipped = results.filter(r => r.state === "dup" && !r.selected).length;
+  const notImported = chosen.length - ids.length;
+  const warnCount = chosen.slice(0, ids.length).filter(r => r.warnings.length).length;
+  const msg = h("div", {});
+
+  const rows = [
+    ["Rows read from the file", results.length],
+    ["Imported successfully", ids.length],
+    ["Skipped because of errors", nErr],
+    ["Skipped as possible duplicates", nDupSkipped],
+    ["Imported with warnings", warnCount]
+  ];
+  if (failMsg) rows.push(["Selected but NOT imported (failure)", notImported]);
+
+  const actions = h("div", { class: "actions" });
+  if (statusValue === "draft" && ids.length) {
+    const pub = h("button", { class: "btn primary", type: "button" }, "Publish these " + plural(ids.length, "question") + " now");
+    pub.addEventListener("click", async () => {
+      if (!confirm("Publish " + plural(ids.length, "question") + " so students can see them?")) return;
+      pub.disabled = true; pub.textContent = "Publishing...";
+      try {
+        for (let i = 0; i < ids.length; i += 100) {
+          const part = ids.slice(i, i + 100);
+          const r = await db.from("questions").update({ status: "published", updated_at: new Date().toISOString() }).in("id", part).select("id");
+          if (r.error) throw r.error;
+          if (!r.data || r.data.length !== part.length) throw new Error("The database did not confirm every question.");
+        }
+        msg.replaceChildren(h("div", { class: "okbox" }, "Published. Students can now see these questions."));
+        pub.remove();
+      } catch (e) {
+        pub.disabled = false; pub.textContent = "Publish these " + plural(ids.length, "question") + " now";
+        msg.replaceChildren(h("div", { class: "error" }, "Could not publish: " + friendly(e) + " The questions are still saved as drafts."));
+      }
+    });
+    actions.append(pub);
+  }
+  const again = h("button", { class: "btn", type: "button" }, "Import another file");
+  again.addEventListener("click", start);
+  actions.append(h("a", { class: "btn", href: "admin.html" }, "Review in the admin page"), again);
+
+  app.replaceChildren(h("div", { class: "panel" },
+    h("h1", {}, failMsg ? "Import stopped part-way" : "Import finished"),
+    failMsg ? h("div", { class: "error" }, "Something went wrong: " + failMsg + "\nThe questions listed as imported below ARE saved. To retry the rest, choose the same file again. The ones already saved will be flagged as possible duplicates, so nothing is added twice.") :
+      h("div", { class: "okbox" }, plural(ids.length, "question") + " imported" + (statusValue === "draft" ? " as drafts." : " and published.")),
+    h("table", { style: "border-collapse:collapse;margin-top:8px" },
+      rows.map(r => h("tr", {}, h("td", { style: "padding:4px 16px 4px 0" }, r[0]), h("td", { style: "font-weight:700" }, String(r[1]))))),
+    msg, actions));
+}
+
+/* ---------- start ---------- */
+(async () => {
+  const { data } = await db.auth.getSession();
+  if (data.session) start(); else showLogin();
+})();
+</script>
+</body>
+</html>
