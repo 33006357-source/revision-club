@@ -70,17 +70,6 @@
 </style>
 </head>
 <body>
-<script>
-window.addEventListener("error", function (e) {
-  var t = e.target, msg;
-  if (t && (t.src || t.href) && t !== window) msg = "Could not load this file: " + (t.src || t.href);
-  else msg = "Error: " + e.message + " (" + (e.filename || "") + " line " + (e.lineno || "?") + ")";
-  var box = document.createElement("pre");
-  box.style.cssText = "background:#fee;color:#900;padding:12px;margin:12px;white-space:pre-wrap;font-size:13px";
-  box.textContent = msg;
-  document.body.prepend(box);
-}, true);
-</script>
 <header>
   <div class="inner">
     <a class="logo" href="#/">Revision Hub</a>
@@ -88,9 +77,21 @@ window.addEventListener("error", function (e) {
 </header>
 <main>
   <nav id="crumbs"></nav>
-  <div id="app"></div>
+  <div id="app"><p class="muted">Loading...</p></div>
 </main>
 
+<script>
+/* Shows a clear message if any script fails, instead of leaving a blank page */
+window.addEventListener("error", function (e) {
+  var t = e.target, msg;
+  if (t && t !== window && (t.src || t.href)) msg = "Could not load this file: " + (t.src || t.href);
+  else msg = "Error: " + e.message + " (" + (e.filename || "") + " line " + (e.lineno || "?") + ")";
+  var box = document.createElement("pre");
+  box.style.cssText = "background:#fee;color:#900;padding:12px;margin:12px;white-space:pre-wrap;font-size:13px";
+  box.textContent = msg;
+  document.body.prepend(box);
+}, true);
+</script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/mhchem.min.js"></script>
 <script src="rich.js"></script>
@@ -99,7 +100,6 @@ window.addEventListener("error", function (e) {
 <script>
 const SUPABASE_URL = "https://ovescrsrikwonurarbbl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_TxKpFdVrHZJ0yMwYTl9RHQ_xgb4wo_o";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const app = document.getElementById("app");
 const crumbs = document.getElementById("crumbs");
@@ -115,3 +115,230 @@ function h(tag, props, ...kids) {
     if (kid === null || kid === undefined || kid === false) continue;
     e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
   }
+  return e;
+}
+const plural = (n, word) => n + " " + word + (n === 1 ? "" : "s");
+
+function setCrumbs(parts) {
+  crumbs.replaceChildren();
+  parts.forEach((p, i) => {
+    if (i > 0) crumbs.append(h("span", {}, "›"));
+    crumbs.append(p.href ? h("a", { href: p.href }, p.label) : h("span", { class: "here" }, p.label));
+  });
+}
+function card(href, title, meta) {
+  return h("a", { class: "card", href }, h("div", { class: "card-title" }, title), h("div", { class: "card-meta" }, meta));
+}
+function safeImage(url) {
+  return typeof url === "string" && url.startsWith(SUPABASE_URL + "/storage/");
+}
+
+/* ---------- check that the supporting files loaded ---------- */
+const missing = [];
+if (typeof supabase === "undefined") missing.push("the Supabase library (check your internet connection)");
+if (typeof Rich === "undefined") missing.push("rich.js");
+else if (typeof Rich.renderOpen !== "function") missing.push("parts.js");
+if (missing.length) {
+  setCrumbs([{ label: "Home" }, { label: "Error" }]);
+  app.replaceChildren(h("div", { class: "error" },
+    "The page couldn't start because this didn't load: " + missing.join(", ") + ". " +
+    "Check that these files exist in the repository with exactly these names (all lowercase), then hard refresh."));
+  throw new Error("Missing: " + missing.join(", "));
+}
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ---------- loading data ---------- */
+async function fetchAll(table, columns) {
+  let all = [], from = 0;
+  const size = 1000;
+  while (true) {
+    const { data, error } = await db.from(table).select(columns).order("id").range(from, from + size - 1);
+    if (error) throw error;
+    all = all.concat(data);
+    if (data.length < size) break;
+    from += size;
+  }
+  return all;
+}
+
+let cache = null;
+async function loadData() {
+  if (cache) return cache;
+  const [subjects, topics, subtopics, raw] = await Promise.all([
+    fetchAll("subjects", "id,name,papers"),
+    fetchAll("topics", "id,subject_id,name,sort_order"),
+    fetchAll("subtopics", "id,topic_id,name,sort_order"),
+    fetchAll("questions", "id,subject_id,topic_id,subtopic_id")
+  ]);
+  const byOrder = (a, b) => (a.sort_order - b.sort_order) || (a.id - b.id);
+  topics.sort(byOrder);
+  subtopics.sort(byOrder);
+  const count = { subject: {}, topic: {}, subtopic: {}, direct: {} };
+  const add = (obj, key) => { obj[key] = (obj[key] || 0) + 1; };
+  for (const q of raw) {
+    add(count.subject, q.subject_id);
+    if (q.topic_id) add(count.topic, q.topic_id);
+    if (q.subtopic_id) add(count.subtopic, q.subtopic_id);
+    else if (q.topic_id) add(count.direct, q.topic_id);
+  }
+  cache = { subjects, topics, subtopics, count };
+  return cache;
+}
+
+/* ---------- pages ---------- */
+function notFound() {
+  setCrumbs([{ label: "Home", href: "#/" }, { label: "Not found" }]);
+  app.replaceChildren(h("div", { class: "empty" }, "That page doesn't exist (it may have been removed). ", h("a", { href: "#/" }, "Go to the homepage")));
+}
+
+function renderHome(d) {
+  setCrumbs([{ label: "Home" }]);
+  app.replaceChildren(
+    h("h1", {}, "Choose a subject"),
+    h("p", { class: "sub" }, "Pick a subject to start revising."),
+    h("div", { class: "grid big" },
+      d.subjects.map(s => card("#/s/" + s.id, s.name,
+        plural(d.topics.filter(t => t.subject_id === s.id).length, "topic") + " · " + plural(d.count.subject[s.id] || 0, "question"))))
+  );
+}
+
+function renderSubject(d, id) {
+  const s = d.subjects.find(x => x.id === id);
+  if (!s) return notFound();
+  const topics = d.topics.filter(t => t.subject_id === id);
+  setCrumbs([{ label: "Home", href: "#/" }, { label: s.name }]);
+  app.replaceChildren(
+    h("h1", {}, s.name),
+    h("p", { class: "sub" }, "Choose a topic."),
+    topics.length
+      ? h("div", { class: "grid" }, topics.map(t => card("#/t/" + t.id, t.name,
+          plural(d.subtopics.filter(x => x.topic_id === t.id).length, "subtopic") + " · " + plural(d.count.topic[t.id] || 0, "question"))))
+      : h("div", { class: "empty" }, "No topics have been added for this subject yet.")
+  );
+}
+
+function renderTopic(d, id) {
+  const t = d.topics.find(x => x.id === id);
+  if (!t) return notFound();
+  const s = d.subjects.find(x => x.id === t.subject_id);
+  const subs = d.subtopics.filter(x => x.topic_id === id);
+  const direct = d.count.direct[id] || 0;
+  setCrumbs([{ label: "Home", href: "#/" }, { label: s.name, href: "#/s/" + s.id }, { label: t.name }]);
+  const page = [h("h1", {}, t.name), h("p", { class: "sub" }, s.name + " · Choose a subtopic.")];
+  if (direct > 0) {
+    page.push(h("div", { class: "btn-row" }, h("a", { class: "pill", href: "#/tq/" + id }, "Questions placed directly in this topic (" + direct + ")")));
+  }
+  if (subs.length) {
+    page.push(h("div", { class: "grid" }, subs.map(x => card("#/st/" + x.id, x.name, plural(d.count.subtopic[x.id] || 0, "question")))));
+  } else if (direct === 0) {
+    page.push(h("div", { class: "empty" }, "No subtopics or questions have been added to this topic yet."));
+  }
+  app.replaceChildren(...page);
+}
+
+function questionCard(q) {
+  const c = h("article", { class: "q" });
+  c.append(h("div", { class: "badges" },
+    h("span", { class: "badge" }, "Paper " + q.paper),
+    h("span", { class: "badge" }, q.format === "mcq" ? "Multiple choice" : "Open ended"),
+    q.marks !== null && q.marks !== undefined ? h("span", { class: "badge" }, plural(q.marks, "mark")) : null
+  ));
+  const qt = h("div", { class: "qtext" });
+  Rich.render(qt, q.question_text || "", q.tables);
+  c.append(qt);
+  if (safeImage(q.question_image_url)) {
+    c.append(h("img", { class: "qimg", src: q.question_image_url, alt: "Question diagram", loading: "lazy" }));
+  }
+  if (q.format === "open") {
+    const body = h("div", {});
+    let showing = false;
+    const toggle = h("button", { class: "pill", type: "button", style: "border:0;cursor:pointer;margin-top:14px;font-family:inherit" }, "Show model answer & marking scheme");
+    const draw = () => {
+      Rich.renderOpen(body, q, { safeImage, showAnswers: showing });
+      toggle.textContent = showing ? "Hide model answer & marking scheme" : "Show model answer & marking scheme";
+    };
+    toggle.addEventListener("click", () => { showing = !showing; draw(); });
+    draw();
+    c.append(body, toggle);
+  }
+  if (q.format === "mcq" && Array.isArray(q.options) && q.options.length) {
+    c.append(h("div", { class: "opts" }, q.options.map(o => {
+      const txt = h("span", {});
+      Rich.render(txt, o.text || "", [], { allowTables: false });
+      return h("div", { class: "opt" },
+        h("strong", {}, (o.label || "") + ". "), txt,
+        safeImage(o.image_url) ? h("img", { src: o.image_url, alt: "Option " + (o.label || "") + " image", loading: "lazy" }) : null);
+    })));
+  }
+  return c;
+}
+
+function questionList(qs, subject) {
+  const paperSel = h("select", {}, h("option", { value: "" }, "All papers"),
+    (subject.papers || []).map(p => h("option", { value: p }, "Paper " + p)));
+  const fmtSel = h("select", {}, h("option", { value: "" }, "All formats"),
+    h("option", { value: "mcq" }, "Multiple choice"), h("option", { value: "open" }, "Open ended"));
+  const counter = h("span", { class: "muted" });
+  const list = h("div", {});
+  function draw() {
+    const shown = qs.filter(q => (!paperSel.value || q.paper === paperSel.value) && (!fmtSel.value || q.format === fmtSel.value));
+    counter.textContent = plural(shown.length, "question");
+    list.replaceChildren(...(shown.length
+      ? shown.map(questionCard)
+      : [h("div", { class: "empty" }, qs.length ? "No questions match these filters." : "No questions here yet.")]));
+  }
+  paperSel.addEventListener("change", draw);
+  fmtSel.addEventListener("change", draw);
+  draw();
+  return h("div", {}, h("div", { class: "filters" }, paperSel, fmtSel, counter), list);
+}
+
+async function renderSubtopic(d, id) {
+  const st = d.subtopics.find(x => x.id === id);
+  if (!st) return notFound();
+  const t = d.topics.find(x => x.id === st.topic_id);
+  const s = d.subjects.find(x => x.id === t.subject_id);
+  const { data, error } = await db.from("questions").select("*").eq("subtopic_id", id).order("id");
+  if (error) throw error;
+  setCrumbs([{ label: "Home", href: "#/" }, { label: s.name, href: "#/s/" + s.id },
+    { label: t.name, href: "#/t/" + t.id }, { label: st.name }]);
+  app.replaceChildren(h("h1", {}, st.name), h("p", { class: "sub" }, s.name + " · " + t.name), questionList(data, s));
+}
+
+async function renderTopicQuestions(d, id) {
+  const t = d.topics.find(x => x.id === id);
+  if (!t) return notFound();
+  const s = d.subjects.find(x => x.id === t.subject_id);
+  const { data, error } = await db.from("questions").select("*").eq("topic_id", id).is("subtopic_id", null).order("id");
+  if (error) throw error;
+  setCrumbs([{ label: "Home", href: "#/" }, { label: s.name, href: "#/s/" + s.id },
+    { label: t.name, href: "#/t/" + t.id }, { label: "Topic questions" }]);
+  app.replaceChildren(h("h1", {}, t.name), h("p", { class: "sub" }, s.name + " · Questions placed directly in this topic"), questionList(data, s));
+}
+
+/* ---------- router ---------- */
+async function route() {
+  app.replaceChildren(h("p", { class: "muted" }, "Loading..."));
+  try {
+    const d = await loadData();
+    const m = (location.hash || "#/").match(/^#\/(s|t|st|tq)\/(\d+)$/);
+    if (!location.hash || location.hash === "#/" || location.hash === "#") return renderHome(d);
+    if (!m) return notFound();
+    const id = Number(m[2]);
+    if (m[1] === "s") return renderSubject(d, id);
+    if (m[1] === "t") return renderTopic(d, id);
+    if (m[1] === "st") return await renderSubtopic(d, id);
+    if (m[1] === "tq") return await renderTopicQuestions(d, id);
+  } catch (err) {
+    console.error(err);
+    setCrumbs([{ label: "Home", href: "#/" }, { label: "Error" }]);
+    app.replaceChildren(h("div", { class: "error" },
+      "Sorry, something went wrong while loading. Check your internet connection and refresh the page. If it keeps happening, tell the site owner."));
+  }
+}
+window.addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>
