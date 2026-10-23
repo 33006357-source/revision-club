@@ -1,4 +1,4 @@
-/* Revision Hub - shared tools for showing equations and tables */
+/* Revision Hub - shared tools for showing equations, tables and pictures */
 (function () {
   var style = document.createElement("style");
   style.textContent = [
@@ -7,11 +7,15 @@
     ".rh-table th,.rh-table td{border:1px solid var(--line,#ccc);padding:6px 10px;vertical-align:top;text-align:left}",
     ".rh-table th{background:var(--accent-soft,#eee)}",
     ".rh-dmath{overflow-x:auto;max-width:100%}",
+    ".rh-img{display:block;max-width:100%;height:auto;margin:8px 0;border-radius:6px;background:#fff}",
     ".rh-missing{color:#b42318}"
   ].join("\n");
   document.head.append(style);
 
-  // Splits text into plain text, $inline math$, $$display math$$ and [[table:id]] pieces.
+  // pictures are only allowed from this project's own image storage
+  var IMG_RE = /^https:\/\/ovescrsrikwonurarbbl\.supabase\.co\/storage\/v1\/object\/public\/question-images\/[A-Za-z0-9._-]+$/;
+
+  // Splits text into plain text, $inline math$, $$display math$$, [[table:id]] and [[img:url]] pieces.
   function tokenize(src, allowTables) {
     var out = [], buf = "", bufStart = 0, i = 0;
     function add(c, idx) { if (!buf) bufStart = idx; buf += c; }
@@ -46,13 +50,24 @@
           }
         }
       }
+      if (allowTables && src.startsWith("[[img:", i)) {
+        var mEnd = src.indexOf("]]", i);
+        if (mEnd > 0) {
+          var url = src.slice(i + 6, mEnd).trim();
+          if (IMG_RE.test(url)) {
+            flush(i);
+            out.push({ t: "img", v: url, s: i, e: mEnd + 2 });
+            i = mEnd + 2; continue;
+          }
+        }
+      }
       add(src[i], i); i++;
     }
     flush(src.length);
     // tidy the line breaks around blocks
     for (var k = 0; k < out.length; k++) {
       var tk = out[k];
-      if (tk.t === "dmath" || tk.t === "table") {
+      if (tk.t === "dmath" || tk.t === "table" || tk.t === "img") {
         var p = out[k - 1], n = out[k + 1];
         if (p && p.t === "text") p.v = p.v.replace(/\n$/, "");
         if (n && n.t === "text") n.v = n.v.replace(/^\n/, "");
@@ -93,6 +108,9 @@
   function tableRefs(text) {
     return tokenize(text || "", true).filter(function (t) { return t.t === "table"; }).map(function (t) { return t.v; });
   }
+  function imageRefs(text) {
+    return tokenize(text || "", true).filter(function (t) { return t.t === "img"; }).map(function (t) { return t.v; });
+  }
 
   function buildTable(t, id, opts) {
     var wrap = document.createElement("div");
@@ -125,7 +143,7 @@
     return wrap;
   }
 
-  // Safely draws text (with equations and tables) into an element. Never uses innerHTML on user text.
+  // Safely draws text (with equations, tables and pictures) into an element. Never uses innerHTML on user text.
   function render(el, text, tables, opts) {
     opts = opts || {};
     var map = {};
@@ -139,10 +157,13 @@
       } else if (tok.t === "dmath") {
         var d = document.createElement("div"); d.className = "rh-dmath";
         renderMath(d, tok.v, true); frag.append(d);
+      } else if (tok.t === "img") {
+        var im = document.createElement("img"); im.className = "rh-img";
+        im.src = tok.v; im.alt = "Picture"; im.loading = "lazy"; frag.append(im);
       } else if (tok.t === "table") frag.append(buildTable(map[tok.v], tok.v, opts));
     });
     el.replaceChildren(frag);
   }
 
-  window.Rich = { render: render, renderMath: renderMath, checkMath: checkMath, validate: validate, tokenize: tokenize, tableRefs: tableRefs };
+  window.Rich = { render: render, renderMath: renderMath, checkMath: checkMath, validate: validate, tokenize: tokenize, tableRefs: tableRefs, imageRefs: imageRefs };
 })();
