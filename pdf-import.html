@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Revision Hub - Import from PDF</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+  :root {
+    --bg: #f6f7fb; --card: #ffffff; --text: #1c2434; --muted: #667085;
+    --line: #e4e7ec; --accent: #4f46e5; --accent-soft: #eef2ff; --danger: #b42318;
+    --ok: #067647; --ok-soft: #ecfdf3; --bad-soft: #fef3f2; --warn: #93370d; --warn-soft: #fef0c7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420; --card: #18202f; --text: #e8ecf4; --muted: #9aa4b5;
+      --line: #2a3447; --accent: #818cf8; --accent-soft: #232b45; --danger: #f97066;
+      --ok: #47cd89; --ok-soft: #10261c; --bad-soft: #2c1715; --warn: #fdb022; --warn-soft: #2e2310;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 20px; }
+  header .inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .logo { font-weight: 800; font-size: 20px; color: var(--accent); }
+  .hlinks { display: flex; gap: 14px; }
+  .hlinks a { color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 600; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 24px; margin: 0 0 12px; }
+  h2 { font-size: 17px; margin: 18px 0 6px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 14px; }
+  .narrow { max-width: 420px; margin: 40px auto; }
+  .field { display: block; margin-bottom: 14px; }
+  .lbl { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 14px; }
+  input[type=text], input[type=email], input[type=password], input[type=number], textarea, select {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); font-size: 15px; font-family: inherit;
+  }
+  textarea { min-height: 64px; resize: vertical; }
+  select.auto, input.auto { width: auto; max-width: 100%; }
+  input[type=number].tiny { width: 80px; }
+  .btn { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+    color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; font-family: inherit; }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .error { background: var(--card); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px; margin: 12px 0; white-space: pre-wrap; }
+  .okbox { background: var(--ok-soft); border: 1px solid var(--ok); color: var(--ok); border-radius: 10px; padding: 12px; margin: 12px 0; font-weight: 600; }
+  .notice { background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 10px 12px; margin: 12px 0; font-size: 13px; }
+  ol, ul { margin: 6px 0 6px 20px; padding: 0; }
+  li { margin: 3px 0; }
+  code { background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .stat { border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 13px; background: var(--accent-soft); color: var(--accent); }
+  .stat.ok { background: var(--ok-soft); color: var(--ok); }
+  .stat.warn { background: var(--warn-soft); color: var(--warn); }
+  .stat.err { background: var(--bad-soft); color: var(--danger); }
+  .qcard { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .qcard.off { opacity: .6; }
+  .qhead { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .qhead strong { font-size: 16px; }
+  .badge { background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .badge.err { background: var(--bad-soft); color: var(--danger); }
+  .badge.ok { background: var(--ok-soft); color: var(--ok); }
+  .node { border-left: 3px solid var(--line); padding: 6px 0 6px 12px; margin: 10px 0; }
+  .thumb { margin: 6px 0; }
+  .thumb img { max-width: 100%; max-height: 260px; border: 1px solid var(--line); border-radius: 8px; background: #fff; display: block; }
+  .opts4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 8px 0; }
+  .opt4 { border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 6px 0; }
+  label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; }
+  .bar { position: sticky; bottom: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  @media (max-width: 520px) { main { padding: 14px; } .panel { padding: 14px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <span class="logo">Revision Hub - Import from PDF</span>
+    <div class="hlinks">
+      <a href="admin.html">Back to admin</a>
+      <a href="import.html">CSV import</a>
+      <a href="index.html">View site</a>
+    </div>
+  </div>
+</header>
+<main><div id="app"><p class="muted">Loading...</p></div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/mhchem.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="rich.js"></script>
+<script src="pdf-parse.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://ovescrsrikwonurarbbl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_TxKpFdVrHZJ0yMwYTl9RHQ_xgb4wo_o";
+const BUCKET = "question-images";
+const app = document.getElementById("app");
+
+/* ---------- helpers ---------- */
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "class") e.className = v; else e.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+const friendly = e => (e && e.message) ? e.message : "Unknown error";
+const norm = s => String(s == null ? "" : s).toLowerCase().replace(/\s+/g, " ").trim();
+
+const missingLibs = [];
+if (typeof pdfjsLib === "undefined") missingLibs.push("the PDF reader (pdf.js, from cdnjs.cloudflare.com)");
+if (typeof Rich === "undefined") missingLibs.push("rich.js");
+if (typeof PdfParse === "undefined") missingLibs.push("pdf-parse.js");
+if (typeof supabase === "undefined") missingLibs.push("the Supabase library");
+if (missingLibs.length) {
+  app.replaceChildren(h("div", { class: "error" },
+    "This page could not start because these did not load: " + missingLibs.join(", ") +
+    ". Check that the files exist in your repository with exactly these names, and that your network allows cdnjs.cloudflare.com, then hard refresh."));
+  throw new Error("Missing: " + missingLibs.join(", "));
+}
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function fetchAll(table, columns) {
+  let all = [], from = 0;
+  while (true) {
+    const { data, error } = await db.from(table).select(columns).order("id").range(from, from + 999);
+    if (error) throw error;
+    all = all.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+  return all;
+}
+
+let meta = { subjects: [], topics: [], subtopics: [] };
+let existing = [];
+let S = null;
+
+/*LOGIC-START*/
+/* ---------- turning parsed PDFs into reviewable items (no screen code here) ---------- */
+function newSlot(src, regions) {
+  if (!regions || !regions.length) return null;
+  const slot = { src: src, regions: regions, blob: null, url: null, state: "idle", promise: null, listeners: [] };
+  if (S) S.slots.push(slot);
+  return slot;
+}
+function msTextOf(row) {
+  let t = row.answerText || "";
+  if (row.notesText) t += (t ? "\n\n" : "") + "Notes: " + row.notesText;
+  return t;
+}
+function elemKey(q, el) {
+  let key = String(q.number);
+  if (el.kind === "part") key += "." + el.label;
+  if (el.kind === "sub") {
+    const parent = q.parts.find(p => p.children.indexOf(el) !== -1);
+    key += "." + (parent ? parent.label : "?") + "." + el.label;
+  }
+  return key;
+}
+function makeNode(el, q, ms, usedKeys) {
+  const node = {
+    kind: el.kind, label: el.label, text: el.text, cleanText: el.text, raw: el.rawText,
+    marks: el.marks, slot: newSlot("q", el.regions), usePic: el.regions.length > 0, ms: null, children: [], warnings: []
+  };
+  if (!el.children.length && !(el.kind === "intro" && q.parts.length)) {
+    const row = ms.rows[elemKey(q, el)];
+    if (row) {
+      usedKeys.add(elemKey(q, el));
+      node.ms = { text: msTextOf(row), slot: newSlot("m", [row.region]), usePic: row.needsPicture, total: row.total, totalMax: row.totalMax, rowPic: row.needsPicture };
+      if (node.marks == null && row.total != null && !row.totalMax) node.marks = row.total;
+      else if (node.marks != null && row.total != null && !row.totalMax && node.marks !== row.total) node.warnings.push("Marks differ: question paper says " + node.marks + ", markscheme says " + row.total + ".");
+    } else if (Object.keys(ms.rows).length) node.warnings.push("No markscheme row was found for this part.");
+  }
+  el.children.forEach(c => node.children.push(makeNode(c, q, ms, usedKeys)));
+  return node;
+}
+function buildOpenItems(parsed, ms, sourceName) {
+  const usedKeys = new Set();
+  const items = parsed.questions.map(q => {
+    const root = makeNode(q.intro, q, ms, usedKeys);
+    const parts = q.parts.map(p => makeNode(p, q, ms, usedKeys));
+    const it = { type: "open", number: q.number, include: true, dup: false, subtopicId: null, root: root, parts: parts, warnings: q.warnings.slice(), source: sourceName + "#Q" + q.number };
+    return it;
+  });
+  const unused = ms.order.filter(k => !usedKeys.has(k));
+  return { items: items, unusedMs: unused };
+}
+function buildMcqItems(parsed, key, sourceName) {
+  return parsed.questions.map(q => {
+    const warnings = q.warnings.slice();
+    const correct = key[q.number] || "";
+    if (!correct) warnings.push("No answer was found in the markscheme. Choose the correct answer below.");
+    const optionsMode = q.optionsMode;
+    return {
+      type: "mcq", number: q.number, include: true, dup: false, subtopicId: null, marks: 1, correct: correct,
+      stem: { text: q.stem.text, cleanText: q.stem.text, raw: q.stem.rawText, slot: newSlot("q", q.stem.regions), usePic: q.stem.regions.length > 0 },
+      mode: optionsMode,
+      options: q.options.map(o => ({ label: o.label, text: o.text, slot: newSlot("q", [o.region]) })),
+      warnings: warnings, source: sourceName + "#Q" + q.number
+    };
+  });
+}
+function sumLeafMarks(nodes) {
+  let total = 0, any = false;
+  nodes.forEach(n => {
+    if (n.children.length) { const r = sumLeafMarks(n.children); if (r.any) { total += r.total; any = true; } }
+    else if (n.marks != null && n.marks !== "") { total += Number(n.marks) || 0; any = true; }
+  });
+  return { total: total, any: any };
+}
+function safeText(t) {
+  t = String(t || "");
+  if (!Rich.validate(t)) return t;
+  return t.replace(/\$([^$]*)\$/g, (a, inner) => inner.replace(/[\^_]\{([^}]*)\}/g, (b, c) => (b[0] === "^" ? "^(" : "_(") + c + ")"));
+}
+function applyAssignments(items, assignments) {
+  let n = 0;
+  assignments.forEach(a => items.forEach(it => { if (it.number >= a.from && it.number <= a.to) { it.subtopicId = a.sub.id; n++; } }));
+  return n;
+}
+/*LOGIC-END*/
+
+/* ---------- reading PDFs in the browser ---------- */
+async function openPdf(file) {
+  const buf = await file.arrayBuffer();
+  return pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+}
+async function imageRects(page, vp) {
+  try {
+    const ol = await page.getOperatorList();
+    const O = pdfjsLib.OPS, U = pdfjsLib.Util;
+    const imgOps = new Set(["paintImageXObject", "paintInlineImageXObject", "paintImageMaskXObject", "paintJpegXObject", "paintImageXObjectRepeat"]
+      .map(n => O[n]).filter(v => v !== undefined));
+    let ctm = [1, 0, 0, 1, 0, 0];
+    const stack = [], rects = [];
+    for (let i = 0; i < ol.fnArray.length; i++) {
+      const fn = ol.fnArray[i], args = ol.argsArray[i];
+      if (fn === O.save) stack.push(ctm.slice());
+      else if (fn === O.restore) { if (stack.length) ctm = stack.pop(); }
+      else if (fn === O.transform) ctm = U.transform(ctm, args);
+      else if (fn === O.paintFormXObjectBegin) { stack.push(ctm.slice()); if (args && args[0]) ctm = U.transform(ctm, args[0]); }
+      else if (fn === O.paintFormXObjectEnd) { if (stack.length) ctm = stack.pop(); }
+      else if (imgOps.has(fn)) {
+        const m = U.transform(vp.transform, ctm);
+        const pts = [[0, 0], [1, 0], [0, 1], [1, 1]].map(p => U.applyTransform(p, m));
+        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+        const r = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+        if (r.x1 - r.x0 > 4 && r.y1 - r.y0 > 4 && (r.x1 - r.x0) * (r.y1 - r.y0) < 0.8 * vp.width * vp.height) rects.push(r);
+      }
+    }
+    return rects;
+  } catch (e) {
+    console.warn("Could not look for pictures on a page", e);
+    return [];
+  }
+}
+async function extractPages(doc, wantImages, onProgress) {
+  const pages = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    onProgress(i, doc.numPages);
+    const page = await doc.getPage(i);
+    const vp = page.getViewport({ scale: 1 });
+    const tc = await page.getTextContent();
+    const items = [];
+    tc.items.forEach(it => {
+      if (typeof it.str !== "string") return;
+      const t = pdfjsLib.Util.transform(vp.transform, it.transform);
+      items.push({ s: it.str, x: t[4], y: t[5], w: it.width * vp.scale, size: Math.hypot(t[2], t[3]) });
+    });
+    const images = wantImages ? await imageRects(page, vp) : [];
+    pages.push({ width: vp.width, height: vp.height, items: items, images: images });
+  }
+  return pages;
+}
+
+/* ---------- pictures: cut regions out of PDF pages ---------- */
+const SCALE = 2;
+const pageCache = new Map();
+async function pageCanvas(doc, key, idx) {
+  const ck = key + ":" + idx;
+  if (pageCache.has(ck)) { const c = pageCache.get(ck); pageCache.delete(ck); pageCache.set(ck, c); return c; }
+  const page = await doc.getPage(idx + 1);
+  const vp = page.getViewport({ scale: SCALE });
+  const c = document.createElement("canvas");
+  c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  pageCache.set(ck, c);
+  while (pageCache.size > 3) pageCache.delete(pageCache.keys().next().value);
+  return c;
+}
+function trimCanvas(c) {
+  const w = c.width, hh = c.height;
+  const data = c.getContext("2d").getImageData(0, 0, w, hh).data;
+  let minX = w, minY = hh, maxX = -1, maxY = -1;
+  for (let y = 0; y < hh; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i] < 235 || data[i + 1] < 235 || data[i + 2] < 235) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null;
+  const pad = 8;
+  minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+  maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(hh - 1, maxY + pad);
+  const o = document.createElement("canvas");
+  o.width = maxX - minX + 1; o.height = maxY - minY + 1;
+  const octx = o.getContext("2d");
+  octx.fillStyle = "#fff"; octx.fillRect(0, 0, o.width, o.height);
+  octx.drawImage(c, minX, minY, o.width, o.height, 0, 0, o.width, o.height);
+  return o;
+}
+async function cropRegion(doc, key, rg) {
+  const pc = await pageCanvas(doc, key, rg.page);
+  const x0 = Math.max(0, Math.floor(rg.x0 * SCALE)), y0 = Math.max(0, Math.floor(rg.y0 * SCALE));
+  const x1 = Math.min(pc.width, Math.ceil(rg.x1 * SCALE)), y1 = Math.min(pc.height, Math.ceil(rg.y1 * SCALE));
+  const w = x1 - x0, hgt = y1 - y0;
+  if (w < 8 || hgt < 8) return null;
+  const c = document.createElement("canvas");
+  c.width = w; c.height = hgt;
+  c.getContext("2d").drawImage(pc, x0, y0, w, hgt, 0, 0, w, hgt);
+  return trimCanvas(c);
+}
+function stackCanvases(cs) {
+  if (cs.length === 1) return cs[0];
+  const gap = 10;
+  const W = Math.max(...cs.map(c => c.width));
+  const H = cs.reduce((a, c) => a + c.height, 0) + gap * (cs.length - 1);
+  const o = document.createElement("canvas");
+  o.width = W; o.height = H;
+  const ctx = o.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+  let y = 0;
+  cs.forEach(c => { ctx.drawImage(c, 0, y); y += c.height + gap; });
+  return o;
+}
+const canvasBlob = (c, type, q) => new Promise(res => c.toBlob(res, type, q));
+async function toBlob(c) {
+  let b = await canvasBlob(c, "image/png");
+  if (b && b.size > 1.9 * 1024 * 1024) b = await canvasBlob(c, "image/jpeg", 0.88);
+  if (!b || b.size > 1.95 * 1024 * 1024) throw new Error("A picture is too large to store (over 2 MB).");
+  return b;
+}
+function ensureSlot(slot) {
+  if (!slot) return Promise.resolve(null);
+  if (slot.promise) return slot.promise;
+  slot.promise = (async () => {
+    try {
+      const doc = slot.src === "m" ? S.mDoc : S.qDoc;
+      const cs = [];
+      for (const rg of slot.regions) { const c = await cropRegion(doc, slot.src, rg); if (c) cs.push(c); }
+      if (!cs.length) throw new Error("The picture area was empty.");
+      slot.blob = await toBlob(stackCanvases(cs));
+      slot.url = URL.createObjectURL(slot.blob);
+      slot.state = "ready";
+    } catch (e) {
+      console.error("Picture failed", e);
+      slot.state = "failed";
+      slot.error = friendly(e);
+    }
+    slot.listeners.forEach(fn => { try { fn(); } catch (e2) { /* ignore */ } });
+    return slot;
+  })();
+  return slot.promise;
+}
+async function runPreviewQueue(onProgress) {
+  const slots = S.slots.slice().sort((a, b) => (a.src < b.src ? -1 : a.src > b.src ? 1 : a.regions[0].page - b.regions[0].page));
+  let done = 0;
+  for (const slot of slots) {
+    if (!S || S.cancelled) return;
+    await ensureSlot(slot);
+    done++;
+    onProgress(done, slots.length);
+  }
+}
+function thumb(slot) {
+  const box = h("div", { class: "thumb" });
+  if (!slot) return box;
+  const msg = h("span", { class: "muted small" }, "Preparing the picture...");
+  const img = h("img", { alt: "Picture cut from the PDF", style: "display:none" });
+  box.append(msg, img);
+  const apply = () => {
+    if (slot.state === "ready") { img.src = slot.url; img.style.display = ""; msg.style.display = "none"; }
+    else if (slot.state === "failed") msg.textContent = "Could not make this picture: " + (slot.error || "unknown problem");
+  };
+  slot.listeners.push(apply);
+  apply();
+  return box;
+}
+
+/* ---------- sign in ---------- */
+function showLogin() {
+  const email = h("input", { type: "email", autocomplete: "username", required: "required" });
+  const pass = h("input", { type: "password", autocomplete: "current-password", required: "required" });
+  const err = h("div", { class: "error", style: "display:none" });
+  const btn = h("button", { class: "btn primary", type: "submit" }, "Sign in");
+  const form = h("form", { class: "panel narrow" }, h("h1", {}, "Admin sign in"),
+    h("label", { class: "field" }, h("span", { class: "lbl" }, "Email"), email),
+    h("label", { class: "field" }, h("span", { class: "lbl" }, "Password"), pass), err, btn);
+  form.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    btn.disabled = true; btn.textContent = "Signing in...";
+    const { error } = await db.auth.signInWithPassword({ email: email.value.trim(), password: pass.value });
+    if (error) {
+      err.style.display = ""; err.textContent = "Could not sign in. Check your email and password.";
+      btn.disabled = false; btn.textContent = "Sign in";
+      return;
+    }
+    await start();
+  });
+  app.replaceChildren(form);
+}
+async function loadAll() {
+  const [subjects, topics, subtopics] = await Promise.all([
+    fetchAll("subjects", "id,name,papers"),
+    fetchAll("topics", "id,subject_id,name,sort_order"),
+    fetchAll("subtopics", "id,topic_id,name,sort_order")
+  ]);
+  const byOrder = (a, b) => (a.sort_order - b.sort_order) || (a.id - b.id);
+  topics.sort(byOrder); subtopics.sort(byOrder);
+  meta = { subjects: subjects, topics: topics, subtopics: subtopics };
+  existing = await fetchAll("questions", "id,subject_id,paper,format,question_text,source");
+}
+async function start() {
+  if (S) { S.cancelled = true; S.slots.forEach(s => { if (s.url) URL.revokeObjectURL(s.url); }); S = null; }
+  pageCache.clear();
+  app.replaceChildren(h("p", { class: "muted" }, "Loading..."));
+  try { await loadAll(); }
+  catch (e) {
+    const msg = friendly(e);
+    app.replaceChildren(h("div", { class: "error" }, "Could not load data: " + msg +
+      (/source/i.test(msg) ? "\n\nThis looks like the database step that adds the \"source\" column has not been run yet. Run the SQL from the instructions in Supabase, then refresh." : "")));
+    return;
+  }
+  showSetup();
+}
+
+/* ---------- screen 1: choose the files ---------- */
+function showSetup() {
+  const subjSel = h("select", {}, meta.subjects.map(s => h("option", { value: String(s.id) }, s.name)));
+  const paperSel = h("select", {});
+  const fmtSel = h("select", {}, h("option", { value: "mcq" }, "Multiple choice"), h("option", { value: "open" }, "Open ended"));
+  const qFile = h("input", { type: "file", accept: ".pdf,application/pdf" });
+  const mFile = h("input", { type: "file", accept: ".pdf,application/pdf" });
+  const err = h("div", { class: "error", style: "display:none" });
+  const status = h("p", { class: "muted" });
+  const go = h("button", { class: "btn primary", type: "button" }, "Read the PDFs");
+
+  function fillPapers() {
+    const s = meta.subjects.find(x => String(x.id) === subjSel.value);
+    paperSel.replaceChildren(...(s ? s.papers : []).map(p => h("option", { value: p }, "Paper " + p)));
+    paperSel.value = s && s.papers.includes("1A") ? "1A" : (s ? s.papers[0] : "");
+    syncFormat();
+  }
+  function syncFormat() { fmtSel.value = paperSel.value === "1A" ? "mcq" : "open"; }
+  subjSel.addEventListener("change", fillPapers);
+  paperSel.addEventListener("change", syncFormat);
+  fillPapers();
+
+  go.addEventListener("click", async () => {
+    err.style.display = "none";
+    const qf = qFile.files[0], mf = mFile.files[0];
+    if (!qf) { err.textContent = "Please choose the question paper PDF."; err.style.display = ""; return; }
+    go.disabled = true;
+    try {
+      await processFiles({
+        subject: meta.subjects.find(x => String(x.id) === subjSel.value), paper: paperSel.value, format: fmtSel.value, qf: qf, mf: mf || null
+      }, m => { status.textContent = m; });
+    } catch (e) {
+      console.error(e);
+      err.textContent = friendly(e); err.style.display = "";
+      status.textContent = "";
+      go.disabled = false;
+    }
+  });
+
+  app.replaceChildren(
+    h("div", { class: "panel" },
+      h("h1", {}, "Import questions from past-paper PDFs"),
+      h("ol", {},
+        h("li", {}, "Choose the subject and paper, then pick the question paper PDF and (recommended) its markscheme PDF."),
+        h("li", {}, "The PDFs are read inside your browser. They are not uploaded anywhere."),
+        h("li", {}, "You get a review screen: assign topics, check the answers, and look at every picture before anything is saved."),
+        h("li", {}, "Everything is saved as a ", h("strong", {}, "draft"), ". Students see nothing until you publish it from the admin page.")),
+      h("div", { class: "notice" }, "Before importing a published exam paper, check its licence. Many exam boards, including the IB, do not allow their papers to be put on public websites or in apps. Keep this site private if you are unsure."),
+      h("div", { class: "grid2", style: "margin-top:14px" },
+        h("label", { class: "field" }, h("span", { class: "lbl" }, "Subject"), subjSel),
+        h("label", { class: "field" }, h("span", { class: "lbl" }, "Exam paper"), paperSel),
+        h("label", { class: "field" }, h("span", { class: "lbl" }, "Question format in this PDF"), fmtSel)),
+      h("label", { class: "field" }, h("span", { class: "lbl" }, "Question paper PDF"), qFile),
+      h("label", { class: "field" }, h("span", { class: "lbl" }, "Markscheme PDF (answers and marking scheme)"), mFile),
+      err, h("div", { class: "actions" }, go), status));
+}
+
+/* ---------- reading and parsing ---------- */
+async function processFiles(cfg, say) {
+  S = { cfg: cfg, slots: [], items: [], qDoc: null, mDoc: null, cancelled: false, unusedMs: [], notes: [] };
+  const base = cfg.qf.name.replace(/\.pdf$/i, "");
+  say("Opening the question paper...");
+  S.qDoc = await openPdf(cfg.qf);
+  const qPages = await extractPages(S.qDoc, false, (i, n) => say("Reading question paper page " + i + " of " + n + "..."));
+  const chars = qPages.reduce((a, p) => a + p.items.reduce((b, it) => b + it.s.length, 0), 0);
+  if (chars < 200) throw new Error("This PDF has almost no readable text, so it looks like a scan. Scanned PDFs are not supported yet.");
+  let mPages = null;
+  if (cfg.mf) {
+    say("Opening the markscheme...");
+    S.mDoc = await openPdf(cfg.mf);
+    mPages = await extractPages(S.mDoc, true, (i, n) => say("Reading markscheme page " + i + " of " + n + "..."));
+  }
+  say("Finding the questions...");
+  if (cfg.format === "mcq") {
+    const parsed = PdfParse.parseMcq(qPages);
+    const key = mPages ? PdfParse.parseMcqKey(mPages) : {};
+    if (mPages && !Object.keys(key).length) S.notes.push("No answer key could be read from the markscheme PDF. You will need to choose each answer yourself.");
+    S.items = buildMcqItems(parsed, key, base);
+  } else {
+    const parsed = PdfParse.parseOpen(qPages);
+    const ms = mPages ? PdfParse.parseMarkschemeOpen(mPages) : { rows: {}, order: [] };
+    if (mPages && !ms.order.length) S.notes.push("No markscheme rows could be read from the markscheme PDF.");
+    const r = buildOpenItems(parsed, ms, base);
+    S.items = r.items; S.unusedMs = r.unusedMs;
+  }
+  if (!S.items.length) throw new Error("No questions were found. Check that you chose the right paper type and the right PDF.");
+  // duplicates: same source already imported
+  S.items.forEach(it => {
+    const dup = existing.find(e => e.source && e.source === it.source);
+    if (dup) { it.dup = true; it.include = false; it.warnings.push("Already imported (question #" + dup.id + " in your bank). Tick Include if you really want it again."); }
+  });
+  showReview();
+  runPreviewQueue((d, n) => { const el = document.getElementById("prep"); if (el) el.textContent = d >= n ? "All pictures are ready." : "Preparing pictures: " + d + " of " + n + "..."; });
+}
+
+/* ---------- screen 2: review ---------- */
+function subtopicSelect(subjectId, value, onChange, extraClass) {
+  const sel = h("select", { class: extraClass || "auto" }, h("option", { value: "" }, "Unassigned"));
+  meta.topics.filter(t => t.subject_id === subjectId).forEach(t => {
+    const og = h("optgroup", { label: t.name.length > 60 ? t.name.slice(0, 57) + "…" : t.name });
+    meta.subtopics.filter(x => x.topic_id === t.id).forEach(x => og.append(h("option", { value: String(x.id) }, x.name)));
+    sel.append(og);
+  });
+  sel.value = value ? String(value) : "";
+  sel.addEventListener("change", () => onChange(sel.value ? Number(sel.value) : null));
+  return sel;
+}
+function textBox(obj, field, rows) {
+  const ta = h("textarea", { rows: String(rows || 3) });
+  ta.value = obj[field] || "";
+  ta.addEventListener("input", () => { obj[field] = ta.value; });
+  return ta;
+}
+function nodeBlock(n, title, level) {
+  const box = h("div", { class: "node", style: "margin-left:" + (level * 14) + "px" });
+  box.append(h("div", { class: "row" }, h("strong", {}, title),
+    n.children.length ? h("span", { class: "muted small" }, "(has sub-parts)") : null));
+  const ta = textBox(n, "text", 3);
+  box.append(ta);
+  if (n.slot) {
+    const chk = h("input", { type: "checkbox" });
+    chk.checked = n.usePic;
+    const pic = h("div", {});
+    const drawPic = () => { pic.replaceChildren(n.usePic ? thumb(n.slot) : h("span", {})); };
+    chk.addEventListener("change", () => {
+      n.usePic = chk.checked;
+      n.text = n.usePic ? n.cleanText : (n.raw || n.cleanText);
+      ta.value = n.text;
+      drawPic();
+    });
+    box.append(h("div", { class: "row" }, h("label", { class: "chk" }, chk, "Use the picture of the diagram / equation from the paper"),
+      h("span", { class: "muted small" }, "(untick to use the extracted text instead)")), pic);
+    drawPic();
+  }
+  if (!n.children.length) {
+    const mi = h("input", { type: "number", min: "0", step: "1", class: "auto tiny" });
+    mi.value = n.marks == null ? "" : n.marks;
+    mi.addEventListener("input", () => { n.marks = mi.value === "" ? null : Number(mi.value); });
+    box.append(h("div", { class: "row" }, h("label", { class: "chk" }, "Marks ", mi)));
+  }
+  if (n.ms) {
+    const ms = n.ms;
+    const wrap = h("div", { style: "margin-top:6px" }, h("span", { class: "lbl" }, "Markscheme" + (ms.total != null ? " (total " + ms.total + (ms.totalMax ? ", max" : "") + ")" : "")));
+    const area = h("div", {});
+    const chk = h("input", { type: "checkbox" });
+    chk.checked = ms.usePic;
+    const draw = () => {
+      if (ms.usePic && ms.slot) area.replaceChildren(thumb(ms.slot));
+      else area.replaceChildren(textBox(ms, "text", 4));
+    };
+    chk.addEventListener("change", () => { ms.usePic = chk.checked; draw(); });
+    if (ms.slot) wrap.append(h("div", { class: "row" }, h("label", { class: "chk" }, chk, "Use a picture of the markscheme row"),
+      h("span", { class: "muted small" }, ms.rowPic ? "(recommended here: it contains equations)" : "")));
+    wrap.append(area);
+    box.append(wrap);
+    draw();
+  }
+  n.warnings.forEach(w => box.append(h("div", { class: "small", style: "color:var(--warn)" }, "⚠ " + w)));
+  n.children.forEach((c, i) => box.append(nodeBlock(c, (c.kind === "sub" ? "(" + c.label + ")" : "(" + c.label + ")"), level + 1)));
+  return box;
+}
+
+function mcqBody(it) {
+  const body = h("div", {});
+  body.append(h("span", { class: "lbl" }, "Question"), textBox(it.stem, "text", 3));
+  if (it.stem.slot) {
+    const chk = h("input", { type: "checkbox" });
+    chk.checked = it.stem.usePic;
+    const pic = h("div", {});
+    const drawPic = () => { pic.replaceChildren(it.stem.usePic ? thumb(it.stem.slot) : h("span", {})); };
+    const stemTa = body.querySelector("textarea");
+    chk.addEventListener("change", () => {
+      it.stem.usePic = chk.checked;
+      it.stem.text = it.stem.usePic ? it.stem.cleanText : (it.stem.raw || it.stem.cleanText);
+      if (stemTa) stemTa.value = it.stem.text;
+      drawPic();
+    });
+    body.append(h("div", { class: "row" }, h("label", { class: "chk" }, chk, "Use the picture (diagram / equation) from the paper"),
+      h("span", { class: "muted small" }, "(untick to use the extracted text instead)")), pic);
+    drawPic();
+  }
+  if (it.mode === "placeholder") {
+    body.append(h("div", { class: "notice" }, "The answer choices could not be found as separate lines, so they are probably inside the picture. The choices will be saved as A, B, C, D with the text \"(see the picture)\"."));
+  } else {
+    const hasText = it.options.every(o => o.text.trim());
+    const toggle = h("button", { class: "btn", type: "button" }, it.mode === "picture" ? "Use extracted text for the choices instead" : "Use pictures for the choices instead");
+    toggle.addEventListener("click", () => { it.mode = it.mode === "picture" ? "text" : "picture"; renderList(); });
+    body.append(h("span", { class: "lbl", style: "margin-top:8px" }, "Answer choices (" + (it.mode === "picture" ? "pictures from the paper" : "text") + ")"));
+    const grid = h("div", { class: "opts4" });
+    it.options.forEach(o => {
+      const c = h("div", { class: "opt4" }, h("strong", {}, o.label + "."));
+      if (it.mode === "picture") c.append(thumb(o.slot));
+      else { const inp = h("input", { type: "text" }); inp.value = o.text; inp.addEventListener("input", () => { o.text = inp.value; }); c.append(inp); }
+      grid.append(c);
+    });
+    body.append(grid);
+    if (it.mode === "picture" && !hasText) { /* extracted text is incomplete: no toggle offered */ }
+    else body.append(toggle);
+  }
+  const cs = h("select", { class: "auto" }, h("option", { value: "" }, "Choose..."), ["A", "B", "C", "D"].map(l => h("option", { value: l }, l)));
+  cs.value = it.correct;
+  cs.addEventListener("change", () => { it.correct = cs.value; });
+  const mi = h("input", { type: "number", min: "0", step: "1", class: "auto tiny" });
+  mi.value = it.marks;
+  mi.addEventListener("input", () => { it.marks = mi.value === "" ? null : Number(mi.value); });
+  body.append(h("div", { class: "row" }, h("label", { class: "chk" }, "Correct answer ", cs), h("label", { class: "chk" }, "Marks ", mi)));
+  return body;
+}
+
+function openBody(it) {
+  const body = h("div", {});
+  body.append(nodeBlock(it.root, "Question text (introduction)", 0));
+  it.parts.forEach(p => body.append(nodeBlock(p, "(" + p.label + ")", 0)));
+  return body;
+}
+
+function card(it) {
+  const inc = h("input", { type: "checkbox" });
+  inc.checked = it.include;
+  const c = h("div", { class: "qcard" + (it.include ? "" : " off") });
+  inc.addEventListener("change", () => { it.include = inc.checked; c.className = "qcard" + (it.include ? "" : " off"); updateSummary(); });
+  const head = h("div", { class: "qhead" }, h("label", { class: "chk" }, inc, "Include"), h("strong", {}, "Question " + it.number));
+  if (it.dup) head.append(h("span", { class: "badge err" }, "Already imported"));
+  it.warnings.forEach(w => head.append(h("span", { class: "badge warn", title: w }, "⚠ " + (w.length > 70 ? w.slice(0, 67) + "…" : w))));
+  head.append(h("span", { class: "muted small" }, "Topic: "), subtopicSelect(S.cfg.subject.id, it.subtopicId, v => { it.subtopicId = v; updateSummary(); }));
+  c.append(head, it.type === "mcq" ? mcqBody(it) : openBody(it));
+  return c;
+}
+
+let listBox = null;
+function renderList() {
+  listBox.replaceChildren(...S.items.map(card));
+  updateSummary();
+}
+function updateSummary() {
+  const el = document.getElementById("summary");
+  if (!el) return;
+  const inc = S.items.filter(i => i.include);
+  const noTopic = inc.filter(i => !i.subtopicId).length;
+  const noAns = inc.filter(i => i.type === "mcq" && !i.correct).length;
+  el.replaceChildren(
+    h("span", { class: "stat" }, S.items.length + " found"),
+    h("span", { class: "stat ok" }, inc.length + " will be imported"),
+    h("span", { class: "stat" + (noTopic ? " warn" : "") }, noTopic + " without a topic"),
+    noAns ? h("span", { class: "stat err" }, noAns + " need an answer") : null);
+  const btn = document.getElementById("importBtn");
+  if (btn) { btn.disabled = inc.length === 0 || noAns > 0; btn.textContent = noAns ? "Choose the missing answers first" : (inc.length ? "Import " + plural(inc.length, "question") + " as drafts" : "Nothing selected"); }
+}
+
+function showReview() {
+  listBox = h("div", {});
+  const from = h("input", { type: "number", min: "1", class: "auto tiny", placeholder: "from" });
+  const to = h("input", { type: "number", min: "1", class: "auto tiny", placeholder: "to" });
+  let bulkVal = null;
+  const bulkSel = subtopicSelect(S.cfg.subject.id, null, v => { bulkVal = v; });
+  const apply = h("button", { class: "btn", type: "button" }, "Apply to these questions");
+  apply.addEventListener("click", () => {
+    const a = Number(from.value), b = Number(to.value || from.value);
+    if (!a || !bulkVal) { alert("Enter the question numbers and choose a topic first."); return; }
+    applyAssignments(S.items, [{ from: Math.min(a, b), to: Math.max(a, b), sub: { id: bulkVal } }]);
+    renderList();
+  });
+  const paste = h("textarea", { rows: "4", placeholder: "One line per group, for example:\n1-5  A.1\n6  A.2 Forces and momentum\n7-9  Structure 1/1.4" });
+  const pasteErr = h("div", { class: "error", style: "display:none" });
+  const pasteBtn = h("button", { class: "btn", type: "button" }, "Apply the list");
+  pasteBtn.addEventListener("click", () => {
+    const r = PdfParse.parseTopicList(paste.value, S.cfg.subject, meta.topics, meta.subtopics);
+    const n = applyAssignments(S.items, r.assignments);
+    pasteErr.style.display = r.errors.length ? "" : "none";
+    pasteErr.textContent = r.errors.join("\n");
+    if (n) renderList();
+  });
+  const imp = h("button", { class: "btn primary", id: "importBtn", type: "button" }, "Import");
+  imp.addEventListener("click", () => {
+    const n = S.items.filter(i => i.include).length;
+    if (confirm("Save " + plural(n, "question") + " as drafts?")) doImport();
+  });
+  const back = h("button", { class: "btn", type: "button" }, "Start over");
+  back.addEventListener("click", () => { if (confirm("Throw away this review and start over?")) start(); });
+
+  app.replaceChildren(
+    h("div", { class: "panel" },
+      h("h1", {}, "Review: " + S.cfg.subject.name + " Paper " + S.cfg.paper),
+      h("div", { class: "stats", id: "summary" }),
+      S.notes.map(n => h("div", { class: "notice" }, n)),
+      S.unusedMs.length ? h("div", { class: "notice" }, "These markscheme rows did not match any question part, so they are not used: " + S.unusedMs.join(", ")) : null,
+      h("p", { class: "muted small", id: "prep" }, "Preparing pictures..."),
+      h("p", { class: "muted small" }, "Nothing is saved until you press Import. Check the text, the pictures and the answers, tick or untick Include, and give each question a topic."),
+      h("h2", {}, "Assign topics quickly"),
+      h("div", { class: "row" }, "Questions", from, "to", to, "→", bulkSel, apply),
+      h("details", {}, h("summary", { style: "cursor:pointer;font-weight:600" }, "Or paste a list of question numbers and topics"), paste, h("div", { class: "actions" }, pasteBtn), pasteErr)),
+    listBox,
+    h("div", { class: "bar" }, imp, back, h("span", { class: "muted small" }, "Imported questions are saved as drafts.")));
+  renderList();
+}
+
+/* ---------- screen 3: saving ---------- */
+async function uploadSlot(slot, uploaded) {
+  const s = await ensureSlot(slot);
+  if (!s || s.state !== "ready") throw new Error("A picture could not be made (" + (s && s.error ? s.error : "unknown problem") + ").");
+  const ext = s.blob.type === "image/png" ? "png" : "jpg";
+  const path = crypto.randomUUID() + "." + ext;
+  const { error } = await db.storage.from(BUCKET).upload(path, s.blob, { contentType: s.blob.type, upsert: false });
+  if (error) throw error;
+  const url = db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  uploaded.push(url);
+  return url;
+}
+function pathOf(u) { const p = String(u).split("/" + BUCKET + "/"); return p.length === 2 ? decodeURIComponent(p[1]) : null; }
+
+async function nodeToPart(n, uploaded) {
+  const part = { text: safeText(n.text), marks: n.children.length ? null : (n.marks == null ? null : Number(n.marks)), image_url: null, model_answer: null, marking_scheme: null, parts: [] };
+  if (n.usePic && n.slot) part.image_url = await uploadSlot(n.slot, uploaded);
+  if (!part.text.trim() && !part.image_url && !n.children.length) part.text = "(see the question paper)";
+  if (n.ms) part.marking_scheme = await msString(n.ms, uploaded);
+  for (const c of n.children) {
+    const sub = await nodeToPart(c, uploaded);
+    delete sub.parts;
+    part.parts.push(sub);
+  }
+  if (!n.children.length) delete part.parts;
+  return part;
+}
+async function msString(ms, uploaded) {
+  if (ms.usePic && ms.slot) return "[[img:" + await uploadSlot(ms.slot, uploaded) + "]]";
+  return safeText(ms.text) || null;
+}
+
+async function buildPayload(it, uploaded) {
+  const cfg = S.cfg;
+  const topic = it.subtopicId ? meta.subtopics.find(x => x.id === it.subtopicId) : null;
+  const base = {
+    subject_id: cfg.subject.id, topic_id: topic ? topic.topic_id : null, subtopic_id: topic ? topic.id : null,
+    paper: cfg.paper, format: it.type, question_image_url: null, status: "draft", source: it.source,
+    explanation: null, model_answer: null, marking_scheme: null, parts: [], tables: [], options: [], correct_option: null
+  };
+  if (it.type === "mcq") {
+    base.question_text = safeText(it.stem.text);
+    if (it.stem.usePic && it.stem.slot) base.question_image_url = await uploadSlot(it.stem.slot, uploaded);
+    base.marks = it.marks == null ? null : Number(it.marks);
+    base.correct_option = it.correct;
+    for (const o of it.options) {
+      let text = "", image_url = null;
+      if (it.mode === "picture") image_url = await uploadSlot(o.slot, uploaded);
+      else text = safeText(o.text);
+      base.options.push({ label: o.label, text: text, image_url: image_url });
+    }
+    if (it.mode === "placeholder") base.options = ["A", "B", "C", "D"].map(l => ({ label: l, text: "(see the picture)", image_url: null }));
+    if (!base.question_text.trim() && !base.question_image_url) base.question_text = "(see the question paper)";
+    return base;
+  }
+  // open ended
+  const root = it.root;
+  base.question_text = safeText(root.text);
+  if (root.usePic && root.slot) base.question_image_url = await uploadSlot(root.slot, uploaded);
+  if (!it.parts.length) {
+    base.marks = root.marks == null ? null : Number(root.marks);
+    if (root.ms) base.marking_scheme = await msString(root.ms, uploaded);
+  } else {
+    for (const p of it.parts) base.parts.push(await nodeToPart(p, uploaded));
+    const sm = sumLeafMarks(it.parts);
+    base.marks = sm.any ? sm.total : null;
+  }
+  if (!base.question_text.trim() && !base.question_image_url) base.question_text = "(see the parts below)";
+  return base;
+}
+
+async function doImport() {
+  const chosen = S.items.filter(i => i.include);
+  const progress = h("p", {}, "Starting...");
+  app.replaceChildren(h("div", { class: "panel" }, h("h1", {}, "Importing..."), progress, h("p", { class: "muted small" }, "Please keep this page open.")));
+  const ok = [], failed = [];
+  let pics = 0;
+  for (let i = 0; i < chosen.length; i++) {
+    const it = chosen[i];
+    progress.textContent = "Saving question " + it.number + " (" + (i + 1) + " of " + chosen.length + ")...";
+    const uploaded = [];
+    try {
+      const payload = await buildPayload(it, uploaded);
+      const res = await db.from("questions").insert(payload).select("id");
+      if (res.error) throw res.error;
+      if (!res.data || res.data.length !== 1) throw new Error("The database did not confirm this question.");
+      pics += uploaded.length;
+      ok.push(it.number);
+    } catch (e) {
+      console.error(e);
+      const paths = uploaded.map(pathOf).filter(Boolean);
+      if (paths.length) { try { await db.storage.from(BUCKET).remove(paths); } catch (e2) { /* ignore */ } }
+      failed.push({ n: it.number, msg: friendly(e) });
+    }
+  }
+  const skipped = S.items.length - chosen.length;
+  const noTopic = chosen.filter(i => ok.includes(i.number) && !i.subtopicId).length;
+  const rows = [["Questions found in the PDF", S.items.length], ["Imported as drafts", ok.length], ["Not selected (skipped)", skipped],
+    ["Failed", failed.length], ["Pictures saved", pics], ["Imported without a topic", noTopic]];
+  const again = h("button", { class: "btn", type: "button" }, "Import another PDF");
+  again.addEventListener("click", start);
+  app.replaceChildren(h("div", { class: "panel" },
+    h("h1", {}, failed.length ? "Import finished with problems" : "Import finished"),
+    failed.length ? h("div", { class: "error" }, "These questions were NOT imported:\n" + failed.map(f => "Question " + f.n + ": " + f.msg).join("\n") + "\n\nThe others are saved. To retry, start over: questions already imported will be marked so they are not added twice.")
+      : h("div", { class: "okbox" }, plural(ok.length, "question") + " saved as drafts."),
+    h("table", { style: "border-collapse:collapse" }, rows.map(r => h("tr", {}, h("td", { style: "padding:4px 16px 4px 0" }, r[0]), h("td", { style: "font-weight:700" }, String(r[1]))))),
+    h("p", { class: "muted" }, "Next: open the admin page, choose \"Drafts only\" in the status filter, check each question, then change its status to Published."),
+    h("div", { class: "actions" }, h("a", { class: "btn primary", href: "admin.html" }, "Review the drafts in admin"), again)));
+}
+
+(async () => {
+  const { data } = await db.auth.getSession();
+  if (data.session) start(); else showLogin();
+})();
+</script>
+</body>
+</html>
