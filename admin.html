@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Revision Hub - Admin</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+  :root {
+    --bg: #f6f7fb; --card: #ffffff; --text: #1c2434; --muted: #667085;
+    --line: #e4e7ec; --accent: #4f46e5; --accent-soft: #eef2ff; --danger: #b42318; --ok: #067647;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420; --card: #18202f; --text: #e8ecf4; --muted: #9aa4b5;
+      --line: #2a3447; --accent: #818cf8; --accent-soft: #232b45; --danger: #f97066; --ok: #47cd89;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 20px; }
+  header .inner { max-width: 960px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .logo { font-weight: 800; font-size: 20px; color: var(--accent); text-decoration: none; }
+  .hlinks { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .hlinks a { color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 600; }
+  main { max-width: 960px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 24px; margin: 0 0 14px; }
+  h2 { font-size: 17px; margin: 0 0 6px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .narrow { max-width: 420px; margin: 40px auto; }
+  .field { display: block; margin-bottom: 14px; }
+  .lbl { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .hint { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+  input[type=text], input[type=email], input[type=password], input[type=number], textarea, select {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); font-size: 15px; font-family: inherit;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 14px; }
+  .box { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .opt-row { border-top: 1px solid var(--line); padding: 12px 0; }
+  .opt-row:first-of-type { border-top: 0; }
+  .opt-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 6px; }
+  .opt-head label { font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .btn { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+    color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: .6; cursor: not-allowed; }
+  .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .danger { color: var(--danger); }
+  .tiny { padding: 5px 10px; font-size: 13px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+  .toolbar select { width: auto; max-width: 100%; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .badge { background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .badge.draft { background: #fef0c7; color: #93370d; }
+  .rtext { white-space: pre-wrap; word-break: break-word; }
+  .clamp { max-height: 8em; overflow: hidden; }
+  .empty { background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); }
+  .error { background: var(--card); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px; margin: 12px 0; }
+  .imgctl { margin-top: 4px; }
+  .prev { display: block; max-width: 240px; max-height: 200px; border-radius: 8px; border: 1px solid var(--line); margin: 8px 0; }
+  .imgctl input[type=file] { font-size: 13px; max-width: 100%; }
+  #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ok); color: #fff;
+    padding: 10px 18px; border-radius: 10px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 90%; z-index: 10; }
+  #toast.show { opacity: 1; }
+  #toast.bad { background: var(--danger); }
+  @media (max-width: 520px) { main { padding: 14px; } .panel { padding: 14px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <span class="logo">Revision Hub - Admin</span>
+    <div class="hlinks">
+      <a href="import.html">Import CSV</a>
+      <a href="pdf-import.html">Import PDF</a>
+      <a href="index.html">View site</a>
+      <button class="btn tiny" id="signout" style="display:none" type="button">Sign out</button>
+    </div>
+  </div>
+</header>
+<main><div id="app"></div></main>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/mhchem.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathlive@0.105.2"></script>
+<script src="rich.js"></script>
+<script src="parts.js"></script>
+<script src="rich-editor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://ovescrsrikwonurarbbl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_TxKpFdVrHZJ0yMwYTl9RHQ_xgb4wo_o";
+const BUCKET = "question-images";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const app = document.getElementById("app");
+const signOutBtn = document.getElementById("signout");
+
+/* ---------- helpers ---------- */
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "class") e.className = v; else e.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+const friendly = e => (e && e.message) ? e.message : "Unknown error";
+let toastTimer;
+function toast(msg, bad) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = "show" + (bad ? " bad" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ""; }, 4500);
+}
+function field(label, control, hint) {
+  return h("label", { class: "field" }, h("span", { class: "lbl" }, label), control,
+    hint ? h("span", { class: "hint" }, hint) : null);
+}
+function select(opts, value) {
+  const s = h("select", {}, opts.map(([v, l]) => h("option", { value: v }, l)));
+  s.value = value;
+  return s;
+}
+function setOptions(sel, opts, keep) {
+  const prev = keep !== undefined ? keep : sel.value;
+  sel.replaceChildren(...opts.map(([v, l]) => h("option", { value: v }, l)));
+  sel.value = opts.some(([v]) => v === prev) ? prev : opts[0][0];
+}
+const safeImage = u => typeof u === "string" && u.startsWith(SUPABASE_URL + "/storage/");
+
+// every text field of every part, so pictures placed inside text ([[img:...]]) can be found
+function partTexts(parts) {
+  const out = [];
+  (parts || []).forEach(p => {
+    out.push(p.text, p.model_answer, p.marking_scheme);
+    out.push(...partTexts(p.parts));
+  });
+  return out;
+}
+const imageUrlsOf = q => [
+  q.question_image_url,
+  ...(Array.isArray(q.options) ? q.options.map(o => o.image_url) : []),
+  ...Rich.imagesOf(q.parts),
+  ...[q.question_text, q.explanation, q.model_answer, q.marking_scheme, ...partTexts(q.parts)].flatMap(t => Rich.imageRefs(t || ""))
+].filter(Boolean);
+
+function pathFromUrl(u) {
+  const parts = String(u).split("/" + BUCKET + "/");
+  return parts.length === 2 ? decodeURIComponent(parts[1]) : null;
+}
+async function removeFiles(urls) {
+  const paths = [...new Set(urls)].map(pathFromUrl).filter(Boolean);
+  if (!paths.length) return;
+  const { error } = await db.storage.from(BUCKET).remove(paths);
+  if (error) console.error("Could not delete old image file(s):", error);
+}
+async function uploadImage(file) {
+  const ext = file.type === "image/png" ? "png" : "jpg";
+  const path = crypto.randomUUID() + "." + ext;
+  const { error } = await db.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+async function fetchAll(table, columns, col = "id", asc = true) {
+  let all = [], from = 0;
+  while (true) {
+    const { data, error } = await db.from(table).select(columns).order(col, { ascending: asc }).range(from, from + 999);
+    if (error) throw error;
+    all = all.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+  return all;
+}
+
+/* ---------- state ---------- */
+let meta = { subjects: [], topics: [], subtopics: [] };
+let questions = [];
+const filters = { subject: "", topic: "", paper: "", format: "", status: "", placement: "" };
+const nameOf = (list, id) => { const x = list.find(i => i.id === id); return x ? x.name : "?"; };
+
+/* ---------- sign in / out ---------- */
+function showLogin() {
+  signOutBtn.style.display = "none";
+  const email = h("input", { type: "email", autocomplete: "username", required: "required" });
+  const pass = h("input", { type: "password", autocomplete: "current-password", required: "required" });
+  const err = h("div", { class: "error", style: "display:none" });
+  const btn = h("button", { class: "btn primary", type: "submit" }, "Sign in");
+  const form = h("form", { class: "panel narrow" }, h("h1", {}, "Admin sign in"),
+    field("Email", email), field("Password", pass), err, btn);
+  form.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    btn.disabled = true; btn.textContent = "Signing in...";
+    const { error } = await db.auth.signInWithPassword({ email: email.value.trim(), password: pass.value });
+    if (error) {
+      err.style.display = ""; err.textContent = "Couldn't sign in. Check your email and password.";
+      btn.disabled = false; btn.textContent = "Sign in";
+      return;
+    }
+    await startApp();
+  });
+  app.replaceChildren(form);
+}
+signOutBtn.addEventListener("click", async () => {
+  await db.auth.signOut();
+  questions = [];
+  showLogin();
+});
+
+async function startApp() {
+  signOutBtn.style.display = "";
+  app.replaceChildren(h("p", { class: "muted" }, "Loading..."));
+  try {
+    const [subjects, topics, subtopics] = await Promise.all([
+      fetchAll("subjects", "id,name,papers"),
+      fetchAll("topics", "id,subject_id,name,sort_order"),
+      fetchAll("subtopics", "id,topic_id,name,sort_order")
+    ]);
+    const byOrder = (a, b) => (a.sort_order - b.sort_order) || (a.id - b.id);
+    topics.sort(byOrder); subtopics.sort(byOrder);
+    meta = { subjects, topics, subtopics };
+    questions = await fetchAll("questions", "*", "id", false);
+    showList();
+  } catch (e) {
+    console.error(e);
+    app.replaceChildren(h("div", { class: "error" }, "Couldn't load data: " + friendly(e)));
+  }
+}
+
+/* ---------- question list ---------- */
+function showList() {
+  window.scrollTo(0, 0);
+  const f = filters;
+  const subjSel = select([["", "All subjects"], ...meta.subjects.map(s => [String(s.id), s.name])], f.subject);
+  const topicList = meta.topics.filter(t => String(t.subject_id) === f.subject);
+  const topicSel = select([["", f.subject ? "All topics" : "Pick a subject first"], ...topicList.map(t => [String(t.id), t.name])], f.topic);
+  topicSel.disabled = !f.subject;
+  const papers = [...new Set(meta.subjects.flatMap(s => s.papers))];
+  const paperSel = select([["", "All papers"], ...papers.map(p => [p, "Paper " + p])], f.paper);
+  const fmtSel = select([["", "All formats"], ["mcq", "Multiple choice"], ["open", "Open ended"]], f.format);
+  const statusSel = select([["", "Draft + published"], ["published", "Published only"], ["draft", "Drafts only"]], f.status);
+  const placeSel = select([["", "All placements"], ["unassigned", "Unassigned only (no subtopic)"]], f.placement);
+  [["subject", subjSel], ["topic", topicSel], ["paper", paperSel], ["format", fmtSel], ["status", statusSel], ["placement", placeSel]]
+    .forEach(([key, el]) => el.addEventListener("change", () => {
+      f[key] = el.value;
+      if (key === "subject") f.topic = "";
+      showList();
+    }));
+
+  const shown = questions.filter(q =>
+    (!f.subject || String(q.subject_id) === f.subject) &&
+    (!f.topic || String(q.topic_id) === f.topic) &&
+    (!f.paper || q.paper === f.paper) &&
+    (!f.format || q.format === f.format) &&
+    (!f.status || q.status === f.status) &&
+    (f.placement !== "unassigned" || !q.subtopic_id));
+
+  const newBtn = h("button", { class: "btn primary", type: "button" }, "+ New question");
+  newBtn.addEventListener("click", () => showEditor(null));
+
+  app.replaceChildren(
+    h("div", { class: "toolbar" }, newBtn, h("span", { class: "muted" }, plural(shown.length, "question") + " shown (of " + questions.length + ")")),
+    h("div", { class: "toolbar" }, subjSel, topicSel, paperSel, fmtSel, statusSel, placeSel),
+    ...(shown.length ? shown.map(rowFor)
+      : [h("div", { class: "empty" }, questions.length ? "No questions match these filters." : "No questions yet. Click \"+ New question\" to add your first one.")])
+  );
+}
+
+function rowFor(q) {
+  let place = nameOf(meta.subjects, q.subject_id);
+  if (q.topic_id) place += " › " + nameOf(meta.topics, q.topic_id);
+  if (q.subtopic_id) place += " › " + nameOf(meta.subtopics, q.subtopic_id);
+  if (!q.subtopic_id) place += q.topic_id ? "  (no subtopic)" : "  (UNASSIGNED)";
+
+  const body = h("div", { class: "rtext clamp" });
+  if ((q.question_text || "").trim()) Rich.render(body, q.question_text, q.tables);
+  else body.textContent = "(image-only question)";
+
+  const edit = h("button", { class: "btn tiny", type: "button" }, "Edit");
+  edit.addEventListener("click", () => showEditor(q));
+  const dup = h("button", { class: "btn tiny", type: "button", title: "Make a copy as a draft, for example to file it under a second subtopic" }, "Duplicate");
+  dup.addEventListener("click", () => duplicateQuestion(q, dup));
+  const del = h("button", { class: "btn tiny danger", type: "button" }, "Delete");
+  del.addEventListener("click", () => deleteQuestion(q, del));
+  const actions = h("div", { class: "actions" }, edit, dup, del);
+  if (q.subtopic_id) actions.append(h("a", { class: "btn tiny", href: "index.html#/st/" + q.subtopic_id, target: "_blank", rel: "noopener" }, "View on site"));
+  else if (q.topic_id) actions.append(h("a", { class: "btn tiny", href: "index.html#/tq/" + q.topic_id, target: "_blank", rel: "noopener" }, "View on site"));
+
+  return h("div", { class: "row" },
+    h("div", { class: "badges" },
+      h("span", { class: "badge" }, "Paper " + q.paper),
+      h("span", { class: "badge" }, q.format === "mcq" ? "Multiple choice" : "Open ended"),
+      q.marks !== null && q.marks !== undefined ? h("span", { class: "badge" }, plural(q.marks, "mark")) : null,
+      Array.isArray(q.parts) && q.parts.length ? h("span", { class: "badge" }, plural(q.parts.length, "part")) : null,
+      q.status === "draft" ? h("span", { class: "badge draft" }, "Draft") : null),
+    body,
+    h("div", { class: "muted small" }, place),
+    actions);
+}
+
+async function deleteQuestion(q, btn) {
+  if (!confirm("Delete this question permanently?\n\n\"" + ((q.question_text || "(image-only)").slice(0, 80)) + "\"\n\nThis can't be undone.")) return;
+  btn.disabled = true; btn.textContent = "Deleting...";
+  try {
+    const { data, error } = await db.from("questions").delete().eq("id", q.id).select();
+    if (error) throw error;
+    if (!data || data.length !== 1) throw new Error("The question was not deleted (no permission, or it no longer exists).");
+    await removeFiles(imageUrlsOf(q));
+    questions = await fetchAll("questions", "*", "id", false);
+    showList();
+    toast("Question deleted.");
+  } catch (e) {
+    console.error(e);
+    btn.disabled = false; btn.textContent = "Delete";
+    toast("Delete failed: " + friendly(e), true);
+  }
+}
+
+// Makes an independent copy (as a draft) and opens it for editing.
+// Every picture is copied too, so deleting one question never removes the other one's pictures.
+async function duplicateQuestion(q, btn) {
+  btn.disabled = true; btn.textContent = "Copying...";
+  const newUrls = [];
+  try {
+    const map = {};
+    for (const u of [...new Set(imageUrlsOf(q))]) {
+      const from = pathFromUrl(u);
+      if (!from) continue;
+      const m = /\.[A-Za-z0-9]+$/.exec(from);
+      const to = crypto.randomUUID() + (m ? m[0] : ".png");
+      const { error } = await db.storage.from(BUCKET).copy(from, to);
+      if (error) throw error;
+      const nu = db.storage.from(BUCKET).getPublicUrl(to).data.publicUrl;
+      map[u] = nu; newUrls.push(nu);
+    }
+    const fields = ["subject_id", "topic_id", "subtopic_id", "paper", "format", "question_text", "question_image_url", "marks",
+      "options", "correct_option", "explanation", "model_answer", "marking_scheme", "parts", "tables"];
+    const copy = {};
+    fields.forEach(k => { copy[k] = q[k] === undefined ? null : q[k]; });
+    if ("source" in q) copy.source = q.source;
+    let json = JSON.stringify(copy);
+    Object.keys(map).forEach(old => { json = json.split(old).join(map[old]); });
+    const payload = JSON.parse(json);
+    payload.status = "draft";
+    const { data, error } = await db.from("questions").insert(payload).select();
+    if (error) throw error;
+    if (!data || data.length !== 1) throw new Error("The copy was not saved.");
+    questions = await fetchAll("questions", "*", "id", false);
+    toast("Copy created as a draft. Change its topic, then remove any parts that don't belong.");
+    showEditor(data[0]);
+  } catch (e) {
+    console.error(e);
+    await removeFiles(newUrls);
+    btn.disabled = false; btn.textContent = "Duplicate";
+    toast("Duplicate failed: " + friendly(e), true);
+  }
+}
+
+/* ---------- question editor ---------- */
+function showEditor(q) {
+  window.scrollTo(0, 0);
+  const editing = !!q;
+  const sessionUploads = new Set();
+  const originalUrls = new Set(q ? imageUrlsOf(q) : []);
+  let busy = 0;
+
+  // all tables for this question live here, keyed by id
+  const tableMap = {};
+  (q && Array.isArray(q.tables) ? q.tables : []).forEach(t => { if (t && t.id) tableMap[t.id] = t; });
+
+  function imageControl(initial) {
+    let url = initial || null;
+    const preview = h("div", {});
+    const status = h("div", { class: "hint" });
+    const file = h("input", { type: "file", accept: "image/png,image/jpeg" });
+    const removeBtn = h("button", { class: "btn tiny", type: "button" }, "Remove image");
+    function draw() {
+      preview.replaceChildren();
+      if (url && safeImage(url)) preview.append(h("img", { class: "prev", src: url, alt: "Preview" }));
+      removeBtn.style.display = url ? "" : "none";
+    }
+    file.addEventListener("change", async () => {
+      const f = file.files[0];
+      if (!f) return;
+      if (!["image/png", "image/jpeg"].includes(f.type)) { status.textContent = "Only PNG or JPG images are allowed."; file.value = ""; return; }
+      if (f.size > 2 * 1024 * 1024) { status.textContent = "That image is over 2 MB. Please use a smaller one."; file.value = ""; return; }
+      status.textContent = "Uploading...";
+      file.disabled = true; busy++;
+      try {
+        const newUrl = await uploadImage(f);
+        sessionUploads.add(newUrl);
+        url = newUrl;
+        status.textContent = "Uploaded. It's attached when you save the question.";
+        draw();
+      } catch (e) {
+        console.error(e);
+        status.textContent = "Upload failed: " + friendly(e);
+      }
+      busy--; file.disabled = false; file.value = "";
+    });
+    removeBtn.addEventListener("click", () => { url = null; status.textContent = "Image removed (applies when you save)."; draw(); });
+    draw();
+    return { el: h("div", { class: "imgctl" }, preview, file, " ", removeBtn, status), getUrl: () => url };
+  }
+
+  // basic fields
+  const subjectSel = select([["", "Choose subject..."], ...meta.subjects.map(s => [String(s.id), s.name])], q ? String(q.subject_id) : "");
+  const paperSel = h("select", {}), topicSel = h("select", {}), subtopicSel = h("select", {});
+  const formatSel = select([["", "Choose format..."], ["mcq", "Multiple choice"], ["open", "Open ended"]], q ? q.format : "");
+  const marks = h("input", { type: "number", min: "0", step: "1", placeholder: "e.g. 3" });
+  if (q && q.marks !== null && q.marks !== undefined) marks.value = q.marks;
+  const statusSel = select([["published", "Published (students can see it)"], ["draft", "Draft (only you can see it)"]], q ? q.status : "published");
+
+  function refreshPapers(keep) {
+    const s = meta.subjects.find(x => String(x.id) === subjectSel.value);
+    setOptions(paperSel, [["", s ? "Choose paper..." : "Choose subject first"], ...(s ? s.papers : []).map(p => [p, "Paper " + p])], keep);
+  }
+  function refreshTopics(keep) {
+    const list = meta.topics.filter(t => String(t.subject_id) === subjectSel.value);
+    setOptions(topicSel, [["", subjectSel.value ? "Unassigned" : "Choose subject first"], ...list.map(t => [String(t.id), t.name])], keep);
+  }
+  function refreshSubtopics(keep) {
+    const list = meta.subtopics.filter(s => String(s.topic_id) === topicSel.value);
+    setOptions(subtopicSel, [["", topicSel.value ? "None (topic only)" : "Choose topic first"], ...list.map(s => [String(s.id), s.name])], keep);
+  }
+  refreshPapers(q ? q.paper : ""); refreshTopics(q && q.topic_id ? String(q.topic_id) : ""); refreshSubtopics(q && q.subtopic_id ? String(q.subtopic_id) : "");
+  subjectSel.addEventListener("change", () => { refreshPapers(); refreshTopics(); refreshSubtopics(); });
+  topicSel.addEventListener("change", () => refreshSubtopics());
+
+  // content fields (with equation, formula and table tools)
+  const qField = RichEditor.richField({
+    label: "Question text", rows: 5, value: q ? q.question_text || "" : "", tables: tableMap,
+    hint: "Use the buttons to add equations, chemical formulas and tables. To write a real dollar sign, type \\$. For open-ended questions with parts, this is the introduction."
+  });
+  const qImg = imageControl(q ? q.question_image_url : null);
+  const explField = RichEditor.richField({ label: "Explanation / worked solution (optional)", rows: 4, value: q ? q.explanation || "" : "", tables: tableMap });
+  const modelField = RichEditor.richField({ label: "Model answer (optional)", rows: 4, value: q ? q.model_answer || "" : "", tables: tableMap, hint: "What a full-marks answer looks like." });
+  const schemeField = RichEditor.richField({ label: "Marking scheme (optional)", rows: 4, value: q ? q.marking_scheme || "" : "", tables: tableMap, hint: "Where the marks are awarded. This is separate from the model answer. A table works well here." });
+
+  const optCtl = ["A", "B", "C", "D"].map(label => {
+    const ex = (q && Array.isArray(q.options) ? q.options.find(o => o.label === label) : null) || {};
+    const rf = RichEditor.richField({ label: "", rows: 2, value: ex.text || "", tables: {}, allowTables: false });
+    rf.box.placeholder = "Option " + label + " text";
+    const radio = h("input", { type: "radio", name: "correct", value: label });
+    if (q && q.correct_option === label) radio.checked = true;
+    return { label, rf, radio, img: imageControl(ex.image_url || null) };
+  });
+
+  const mcqBox = h("div", { class: "box" },
+    h("h2", {}, "Answer options"),
+    h("p", { class: "muted small" }, "Each option needs text, an image, or both. Tick \"Correct\" beside the right answer. Equations and formulas work in options too."),
+    ...optCtl.map(o => h("div", { class: "opt-row" },
+      h("div", { class: "opt-head" }, h("strong", {}, "Option " + o.label), h("label", {}, o.radio, " Correct")),
+      o.rf.el, o.img.el)));
+
+  /* ----- parts (a), (b) and sub-parts (i), (ii) for open-ended questions ----- */
+  const topParts = [];
+  const partsList = h("div", {});
+  const addPartBtn = h("button", { class: "btn tiny", type: "button" }, "+ Add part");
+  const partsBox = h("div", { class: "box" },
+    h("h2", {}, "Parts (a), (b), (c)... (optional)"),
+    h("p", { class: "muted small" }, "Split the question into parts and sub-parts. The question text above becomes the introduction. Labels are added automatically. Put each part's model answer and marking scheme inside that part."),
+    partsList, addPartBtn);
+
+  function makePart(depth, data, getSiblings) {
+    data = data || {};
+    const node = { depth, children: [] };
+    node.text = RichEditor.richField({ label: "Text of this part", rows: 3, value: data.text || "", tables: tableMap });
+    node.marks = h("input", { type: "number", min: "0", step: "1", placeholder: "e.g. 2" });
+    if (data.marks !== null && data.marks !== undefined) node.marks.value = data.marks;
+    node.img = imageControl(data.image_url || null);
+    node.model = RichEditor.richField({ label: "Model answer (optional)", rows: 3, value: data.model_answer || "", tables: tableMap });
+    node.scheme = RichEditor.richField({ label: "Marking scheme (optional)", rows: 3, value: data.marking_scheme || "", tables: tableMap });
+    node.title = h("strong", {});
+    node.childBox = h("div", {});
+    node.marksWrap = field("Marks for this part", node.marks);
+
+    const up = h("button", { class: "btn tiny", type: "button", title: "Move up" }, "↑");
+    const down = h("button", { class: "btn tiny", type: "button", title: "Move down" }, "↓");
+    const rm = h("button", { class: "btn tiny danger", type: "button" }, "Remove");
+    up.addEventListener("click", () => {
+      const a = getSiblings(), i = a.indexOf(node);
+      if (i > 0) { [a[i - 1], a[i]] = [a[i], a[i - 1]]; redrawParts(); }
+    });
+    down.addEventListener("click", () => {
+      const a = getSiblings(), i = a.indexOf(node);
+      if (i < a.length - 1) { [a[i + 1], a[i]] = [a[i], a[i + 1]]; redrawParts(); }
+    });
+    rm.addEventListener("click", () => {
+      if (!confirm("Remove this part" + (depth === 0 ? " and all its sub-parts" : "") + "?")) return;
+      const a = getSiblings();
+      a.splice(a.indexOf(node), 1);
+      redrawParts();
+    });
+
+    const kids = [
+      h("div", { class: "opt-head" }, node.title, up, down, rm),
+      node.text.el,
+      h("div", { class: "field" }, h("span", { class: "lbl" }, "Diagram for this part (optional)"), node.img.el),
+      node.marksWrap, node.model.el, node.scheme.el
+    ];
+    if (depth === 0) {
+      const addSub = h("button", { class: "btn tiny", type: "button" }, "+ Add sub-part (i, ii, iii...)");
+      addSub.addEventListener("click", () => {
+        if (node.children.length >= 12) return;
+        node.children.push(makePart(1, null, () => node.children));
+        redrawParts();
+      });
+      kids.push(node.childBox, addSub);
+      (data.parts || []).forEach(c => node.children.push(makePart(1, c, () => node.children)));
+    }
+    node.el = h("div", { class: "box" }, ...kids);
+    if (depth > 0) node.el.style.marginLeft = "16px";
+    return node;
+  }
+
+  function redrawParts() {
+    topParts.forEach((n, i) => {
+      n.title.textContent = "Part (" + Rich.partLabel(0, i) + ")";
+      n.childBox.replaceChildren(...n.children.map(c => c.el));
+      n.children.forEach((c, j) => {
+        c.title.textContent = "Sub-part (" + Rich.partLabel(1, j) + ") of (" + Rich.partLabel(0, i) + ")";
+      });
+      n.marksWrap.style.display = n.children.length ? "none" : "";
+    });
+    partsList.replaceChildren(...topParts.map(n => n.el));
+  }
+  addPartBtn.addEventListener("click", () => {
+    if (topParts.length >= 20) return;
+    topParts.push(makePart(0, null, () => topParts));
+    redrawParts();
+  });
+  (q && Array.isArray(q.parts) ? q.parts : []).forEach(p => topParts.push(makePart(0, p, () => topParts)));
+  redrawParts();
+
+  function collectOne(n, withKids) {
+    const m = n.marks.value.trim();
+    const o = {
+      text: n.text.getValue(),
+      marks: (withKids && n.children.length) ? null : (m === "" ? null : Number(m)),
+      image_url: n.img.getUrl(),
+      model_answer: n.model.getValue() || null,
+      marking_scheme: n.scheme.getValue() || null
+    };
+    if (withKids) o.parts = n.children.map(c => collectOne(c, false));
+    return o;
+  }
+  function checkNode(n, label, hasKids) {
+    if (!n.text.getValue() && !n.img.getUrl() && !hasKids) return label + " needs some text or a diagram.";
+    const m = n.marks.value.trim();
+    if (!hasKids && m !== "" && !/^\d+$/.test(m)) return label + ": marks must be a whole number.";
+    return null;
+  }
+  function checkParts() {
+    for (let i = 0; i < topParts.length; i++) {
+      const n = topParts[i], a = "Part (" + Rich.partLabel(0, i) + ")";
+      const p1 = checkNode(n, a, n.children.length > 0);
+      if (p1) return p1;
+      for (let j = 0; j < n.children.length; j++) {
+        const p2 = checkNode(n.children[j], "Sub-part (" + Rich.partLabel(1, j) + ") of (" + Rich.partLabel(0, i) + ")", false);
+        if (p2) return p2;
+      }
+    }
+    return null;
+  }
+  function partFields(parts) {
+    const out = [];
+    parts.forEach((p, i) => {
+      const a = "Part (" + Rich.partLabel(0, i) + ")";
+      out.push([a + " text", p.text], [a + " model answer", p.model_answer], [a + " marking scheme", p.marking_scheme]);
+      (p.parts || []).forEach((c, j) => {
+        const b = "Sub-part (" + Rich.partLabel(1, j) + ") of (" + Rich.partLabel(0, i) + ")";
+        out.push([b + " text", c.text], [b + " model answer", c.model_answer], [b + " marking scheme", c.marking_scheme]);
+      });
+    });
+    return out;
+  }
+
+  const openBox = h("div", { class: "box" },
+    h("h2", {}, "Open-ended answer (for the whole question)"),
+    h("p", { class: "muted small" }, "If you added parts above, put the answers inside each part instead. Use these only for a question without parts, or for an overall note."),
+    modelField.el, schemeField.el);
+
+  function syncFormat() {
+    mcqBox.style.display = formatSel.value === "mcq" ? "" : "none";
+    openBox.style.display = formatSel.value === "open" ? "" : "none";
+    partsBox.style.display = formatSel.value === "open" ? "" : "none";
+  }
+  formatSel.addEventListener("change", syncFormat);
+  syncFormat();
+
+  const errBox = h("div", { class: "error", style: "display:none" });
+  function fail(msg) { errBox.textContent = msg; errBox.style.display = ""; errBox.scrollIntoView({ behavior: "smooth", block: "center" }); }
+
+  const saveBtn = h("button", { class: "btn primary", type: "button" }, editing ? "Save changes" : "Save question");
+  const cancelBtn = h("button", { class: "btn", type: "button" }, "Cancel");
+
+  cancelBtn.addEventListener("click", async () => {
+    if (!confirm("Leave without saving? Unsaved changes will be lost.")) return;
+    await removeFiles([...sessionUploads]);
+    showList();
+  });
+
+  saveBtn.addEventListener("click", async () => {
+    errBox.style.display = "none";
+    if (busy > 0) return fail("An image is still uploading. Wait a moment and try again.");
+
+    const fmt = formatSel.value;
+    const subjectId = subjectSel.value ? Number(subjectSel.value) : null;
+    const topicId = topicSel.value ? Number(topicSel.value) : null;
+    const subtopicId = subtopicSel.value ? Number(subtopicSel.value) : null;
+    const text = qField.getValue();
+    const explVal = explField.getValue();
+    const modelVal = modelField.getValue();
+    const schemeVal = schemeField.getValue();
+    const qImage = qImg.getUrl();
+    const marksRaw = marks.value.trim();
+
+    if (!subjectId) return fail("Please choose a subject.");
+    const subject = meta.subjects.find(s => s.id === subjectId);
+    if (!paperSel.value || !subject.papers.includes(paperSel.value)) return fail("Please choose an exam paper.");
+    if (!fmt) return fail("Please choose a question format.");
+    if (!text && !qImage) return fail("Please write the question text or add a question image.");
+    if (marksRaw !== "" && !/^\d+$/.test(marksRaw)) return fail("Marks must be a whole number (or left empty).");
+    if (topicId) { const t = meta.topics.find(x => x.id === topicId); if (!t || t.subject_id !== subjectId) return fail("That topic doesn't belong to the chosen subject."); }
+    if (subtopicId) { const s = meta.subtopics.find(x => x.id === subtopicId); if (!s || s.topic_id !== topicId) return fail("That subtopic doesn't belong to the chosen topic."); }
+
+    let options = [], correct = null;
+    if (fmt === "mcq") {
+      options = optCtl.map(o => ({ label: o.label, text: o.rf.getValue(), image_url: o.img.getUrl() }));
+      const missing = options.find(o => !o.text && !o.image_url);
+      if (missing) return fail("Option " + missing.label + " needs text or an image.");
+      const picked = optCtl.find(o => o.radio.checked);
+      if (!picked) return fail("Please tick which option is the correct answer.");
+      correct = picked.label;
+    }
+
+    let partsOut = [];
+    if (fmt === "open") {
+      const partProblem = checkParts();
+      if (partProblem) return fail(partProblem);
+      partsOut = topParts.map(n => collectOne(n, true));
+    }
+
+    // check every equation in the content that will be saved
+    const toCheck = [["Question text", text], ["Explanation", explVal]];
+    if (fmt === "open") toCheck.push(["Model answer", modelVal], ["Marking scheme", schemeVal], ...partFields(partsOut));
+    if (fmt === "mcq") options.forEach(o => toCheck.push(["Option " + o.label, o.text]));
+    for (const [name, val] of toCheck) {
+      const msg = Rich.validate(val);
+      if (msg) return fail(name + ": " + msg);
+    }
+
+    // keep only tables that are actually used, and check their cells
+    const savedTexts = [text, explVal];
+    if (fmt === "open") savedTexts.push(modelVal, schemeVal, ...partFields(partsOut).map(x => x[1]));
+    const refIds = [...new Set(savedTexts.flatMap(t => Rich.tableRefs(t)))];
+    const lost = refIds.find(id => !tableMap[id]);
+    if (lost) return fail("The text refers to a table that no longer exists ([[table:" + lost + "]]). Remove that line or insert the table again.");
+    const tablesOut = refIds.map(id => tableMap[id]);
+    for (const t of tablesOut) {
+      for (let r = 0; r < t.rows.length; r++) {
+        for (let c = 0; c < t.rows[r].length; c++) {
+          const msg = Rich.validate(t.rows[r][c]);
+          if (msg) return fail("Table, row " + (r + 1) + ", column " + (c + 1) + ": " + msg);
+        }
+      }
+    }
+
+    // total marks: worked out from the parts if they have marks
+    let marksFinal = marksRaw === "" ? null : Number(marksRaw);
+    const partsTotal = Rich.sumMarks(partsOut);
+    if (partsOut.length && partsTotal > 0) marksFinal = partsTotal;
+
+    const payload = {
+      subject_id: subjectId, topic_id: topicId, subtopic_id: subtopicId,
+      paper: paperSel.value, format: fmt, question_text: text, question_image_url: qImage,
+      marks: marksFinal,
+      options, correct_option: correct,
+      explanation: explVal || null,
+      model_answer: fmt === "open" ? (modelVal || null) : null,
+      marking_scheme: fmt === "open" ? (schemeVal || null) : null,
+      parts: partsOut,
+      tables: tablesOut,
+      status: statusSel.value
+    };
+    if (editing) payload.updated_at = new Date().toISOString();
+
+    saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = "Saving...";
+    try {
+      const res = editing
+        ? await db.from("questions").update(payload).eq("id", q.id).select()
+        : await db.from("questions").insert(payload).select();
+      if (res.error) throw res.error;
+      if (!res.data || res.data.length !== 1) throw new Error("The question was not saved (no permission, or it no longer exists).");
+      const finalUrls = new Set(imageUrlsOf(res.data[0]));
+      await removeFiles([...originalUrls, ...sessionUploads].filter(u => !finalUrls.has(u)));
+      questions = await fetchAll("questions", "*", "id", false);
+      showList();
+      toast("Question saved.");
+    } catch (e) {
+      console.error(e);
+      saveBtn.disabled = false; cancelBtn.disabled = false;
+      saveBtn.textContent = editing ? "Save changes" : "Save question";
+      fail("Couldn't save: " + friendly(e) + " Your work is still here, so you can try again.");
+    }
+  });
+
+  app.replaceChildren(h("div", { class: "panel" },
+    h("h1", {}, editing ? "Edit question #" + q.id : "New question"),
+    h("div", { class: "grid2" },
+      field("Subject *", subjectSel), field("Exam paper *", paperSel), field("Question format *", formatSel),
+      field("Marks (optional)", marks, "If you give marks to parts, the total is worked out for you."),
+      field("Topic", topicSel), field("Subtopic", subtopicSel), field("Status", statusSel)),
+    qField.el,
+    h("div", { class: "field" }, h("span", { class: "lbl" }, "Question image or diagram (optional)"), qImg.el,
+      h("span", { class: "hint" }, "PNG or JPG, max 2 MB.")),
+    mcqBox, partsBox, openBox,
+    explField.el,
+    errBox,
+    h("div", { class: "actions" }, saveBtn, cancelBtn)));
+}
+
+/* ---------- start ---------- */
+(async () => {
+  const { data } = await db.auth.getSession();
+  if (data.session) startApp(); else showLogin();
+})();
+</script>
+</body>
+</html>
